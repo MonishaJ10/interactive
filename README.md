@@ -604,3 +604,303 @@ export class ManageDashboardComponent implements OnInit {
     </app-interactive-dashboard>
   </div>
 </div>
+
+
+
+
+
+action 
+import { Component } from '@angular/core';
+import { ICellRendererAngularComp } from 'ag-grid-angular';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+
+@Component({
+  selector: 'app-action-cell-renderer',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule],
+  template: `
+    <button mat-icon-button color="primary" (click)="onEditClicked()">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="onDeleteClicked()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  `
+})
+export class ActionCellRendererComponent implements ICellRendererAngularComp {
+  params: any;
+
+  agInit(params: any): void {
+    this.params = params;
+  }
+
+  refresh(params: any): boolean {
+    return false;
+  }
+
+  onEditClicked(): void {
+    if (this.params?.onEditClicked) {
+      this.params.onEditClicked(this.params.data);
+    }
+  }
+
+  onDeleteClicked(): void {
+    if (this.params?.onDeleteClicked) {
+      this.params.onDeleteClicked(this.params.data.id);
+    }
+  }
+}
+
+manage ts
+import { Component, EventEmitter, Output, OnInit, Inject } from '@angular/core';
+import { isPlatformBrowser, CommonModule } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';
+import { DashboardService } from './dashboard.service';
+import { Dashboardd } from './dashboard.model';
+import { ColDef } from 'ag-grid-community';
+import { AgGridModule } from 'ag-grid-angular';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { BlankDashboardComponent } from './blank-dashboard/blank-dashboard.component';
+import { InteractiveDashboardComponent } from './interactive-dashboard/interactive-dashboard.component';
+import { ActionCellRendererComponent } from './action-cell-renderer.component';
+import { NgIf } from '@angular/common';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css'],
+  imports: [
+    CommonModule,
+    NgIf,
+    MatIconModule,
+    MatButtonModule,
+    AgGridModule,
+    BlankDashboardComponent,
+    InteractiveDashboardComponent,
+    ActionCellRendererComponent
+  ]
+})
+export class ManageDashboardComponent implements OnInit {
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
+
+  tableData: Dashboardd[] = [];
+  selectedDashboard: Dashboardd | null = null;
+  editingDashboard: Dashboardd | null = null;
+
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+
+  selectedBlankDashboard?: Dashboardd;
+  selectedInteractiveDashboard?: Dashboardd;
+
+  isBrowser: boolean;
+
+  dashboards = [
+    { id: 'blank', name: 'Blank Dashboard', icon: '' },
+    { id: 'interactive', name: 'Interactive Dashboard', icon: '' }
+  ];
+
+  columnDefs: ColDef[] = [
+    { field: 'name', headerName: 'Name' },
+    { field: 'description', headerName: 'Description' },
+    { field: 'createdBy', headerName: 'Created By' },
+    { field: 'createdDate', headerName: 'Created Date', valueFormatter: this.dateFormatter },
+    { field: 'modifiedBy', headerName: 'Modified By' },
+    { field: 'modifiedDate', headerName: 'Modified Date', valueFormatter: this.dateFormatter },
+    { field: 'public', headerName: 'Public', valueFormatter: this.booleanFormatter },
+    {
+      headerName: 'Action',
+      field: 'action',
+      cellRenderer: 'appActionCellRenderer',
+      cellRendererParams: {
+        onEditClicked: this.onEditDashboard.bind(this),
+        onDeleteClicked: this.onDeleteDashboard.bind(this)
+      },
+      width: 120,
+      pinned: 'right'
+    }
+  ];
+
+  defaultColDef: ColDef = {
+    flex: 1,
+    resizable: true
+  };
+
+  frameworkComponents = {
+    appActionCellRenderer: ActionCellRendererComponent
+  };
+
+  constructor(
+    private dashboardService: DashboardService,
+    @Inject(PLATFORM_ID) platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+  }
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe({
+      next: (data) => {
+        this.tableData = data.map(d => ({ ...d, action: '' }));
+      },
+      error: (error) => {
+        console.error('Failed to load dashboards:', error);
+        alert('Failed to load dashboards');
+      }
+    });
+  }
+
+  onSelectDashboard(dashboardType: string): void {
+    if (dashboardType === 'blank') {
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    } else if (dashboardType === 'interactive') {
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    }
+    this.selectDashboard.emit(dashboardType);
+  }
+
+  onNewDashboard(): void {
+    this.selectedDashboard = null;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+
+  onEditDashboard(dashboard: Dashboardd): void {
+    this.editingDashboard = dashboard;
+    this.selectedDashboard = dashboard;
+
+    if (this.isInteractiveDashboard(dashboard)) {
+      this.selectedInteractiveDashboard = dashboard;
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    } else {
+      this.selectedBlankDashboard = dashboard;
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    }
+  }
+
+  onDeleteDashboard(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe({
+        next: () => {
+          this.tableData = this.tableData.filter(d => d.id !== id);
+          alert('Dashboard deleted successfully.');
+        },
+        error: () => alert('Delete failed')
+      });
+    }
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = undefined;
+    this.selectedInteractiveDashboard = undefined;
+    this.loadDashboards();
+  }
+
+  onClose(): void {
+    this.closeDashboard.emit();
+  }
+
+  onDashboardCreated(): void {
+    this.loadDashboards();
+  }
+
+  onGridReady(params: any): void {
+    console.log('Grid is ready:', params);
+  }
+
+  dateFormatter(params: any): string {
+    return new Date(params.value).toLocaleDateString();
+  }
+
+  booleanFormatter(params: any): string {
+    return params.value ? 'Yes' : 'No';
+  }
+
+  isInteractiveDashboard(dashboard: Dashboardd): boolean {
+    return !!(dashboard.model || dashboard.groupBy || dashboard.aggregation);
+  }
+}
+
+manage html
+<div class="manage-dashboard-container">
+  <!-- Main Manage Dashboard View -->
+  <div *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+    <!-- Header -->
+    <div class="header">
+      <h2 class="title">Manage Dashboard</h2>
+      <button class="close-btn" (click)="onClose()">x</button>
+    </div>
+
+    <!-- New Dashboard Button -->
+    <div class="new-dashboard-section">
+      <button class="new-dashboard-btn" (click)="onNewDashboard()">
+        <span class="plus-icon">+</span>
+        New Dashboard
+      </button>
+    </div>
+
+    <!-- Dashboard Types -->
+    <div class="dashboard-types">
+      <div class="dashboard-card" *ngFor="let dashboard of dashboards" (click)="onSelectDashboard(dashboard.id)">
+        <div class="dashboard-icon">{{ dashboard.icon }}</div>
+        <div class="dashboard-name">{{ dashboard.name }}</div>
+      </div>
+    </div>
+
+    <!-- All Dashboards Section -->
+    <div class="all-dashboards-section">
+      <h3 class="section-title">All Dashboards</h3>
+      <div class="table-container">
+        <ng-container *ngIf="isBrowser; else placeholder">
+          <ag-grid-angular
+            class="ag-theme-balham"
+            style="width: 100%; height: 500px;"
+            [rowData]="tableData"
+            [columnDefs]="columnDefs"
+            [defaultColDef]="defaultColDef"
+            [frameworkComponents]="frameworkComponents"
+            (gridReady)="onGridReady($event)">
+          </ag-grid-angular>
+        </ng-container>
+        <ng-template #placeholder>
+          <app-ag-grid-placeholder></app-ag-grid-placeholder>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blank Dashboard View -->
+  <div *ngIf="showBlankDashboard">
+    <app-blank-dashboard
+      [editData]="selectedBlankDashboard"
+      (dashboardClose)="onBackToManage()">
+    </app-blank-dashboard>
+  </div>
+
+  <!-- Interactive Dashboard View -->
+  <div *ngIf="showInteractiveDashboard">
+    <div class="dashboard-header">
+      <button class="back-btn" (click)="onBackToManage()">Back to Manage</button>
+      <button class="close-btn" (click)="onClose()">x</button>
+    </div>
+    <app-interactive-dashboard
+      [editData]="selectedInteractiveDashboard"
+      (dashboardCreated)="onDashboardCreated()"
+      (dashboardClose)="onBackToManage()">
+    </app-interactive-dashboard>
+  </div>
+</div>
