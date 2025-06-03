@@ -287,3 +287,112 @@ ngOnInit() {
 
 isInteractiveDashboard(d: DashboardDTO): boolean {
   return !!(d.model && d.groupBy && d.aggregation); // Basic check for interactive fields
+
+
+
+
+<div class="table-container">
+  <table class="dashboards-table">
+    <thead>
+      <tr>
+        <th *ngFor="let header of tableHeaders">{{ header.label }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngIf="tableData.length === 0" class="no-data-row">
+        <td [attr.colspan]="tableHeaders.length" class="no-data-cell">No Rows To Show</td>
+      </tr>
+      <tr *ngFor="let row of tableData">
+        <td *ngFor="let header of tableHeaders">
+          <ng-container [ngSwitch]="header.key">
+            <span *ngSwitchCase="'createdDate'">{{ row.createdDate | date: 'short' }}</span>
+            <span *ngSwitchCase="'modifiedDate'">{{ row.modifiedDate | date: 'short' }}</span>
+            <span *ngSwitchCase="'public'">{{ row.isPublic ? 'Yes' : 'No' }}</span>
+            <span *ngSwitchCase="'action'">
+              <button mat-icon-button color="primary" (click)="onEditDashboard(row)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="onDeleteDashboard(row.id)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </span>
+            <span *ngSwitchDefault>{{ row[header.key] }}</span>
+          </ng-container>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+mangage dashboard comp.ts
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { DashboardService } from '../services/dashboard.service';
+import { Dashboardd } from '../models/dashboard.model'; // adjust path as needed
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css']
+})
+export class ManageDashboardComponent implements OnInit {
+  dashboards: Dashboardd[] = [];
+  tableData: Dashboardd[] = [];
+
+  showBlankModal = false;
+  showInteractiveModal = false;
+
+  selectedBlankDashboard?: Dashboardd;
+  selectedInteractiveDashboard?: Dashboardd;
+
+  selectedDashboard: Dashboardd | null = null;
+
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
+
+  tableHeaders = [
+    { key: 'name', label: 'Name' },
+    { key: 'description', label: 'Description' },
+    { key: 'createdBy', label: 'Created By' },
+    { key: 'createdDate', label: 'Created Date' },
+    { key: 'modifiedBy', label: 'Modified By' },
+    { key: 'modifiedDate', label: 'Modified Date' },
+    { key: 'public', label: 'Public' },
+    { key: 'action', label: 'Action' }
+  ];
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe(data => {
+      this.tableData = data;
+    });
+  }
+
+  onEditDashboard(dashboard: Dashboardd): void {
+    this.selectedDashboard = dashboard;
+
+    if (this.isInteractiveDashboard(dashboard)) {
+      this.selectedInteractiveDashboard = dashboard;
+      this.showInteractiveModal = true;
+    } else {
+      this.selectedBlankDashboard = dashboard;
+      this.showBlankModal = true;
+    }
+  }
+
+  onDeleteDashboard(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe(() => {
+        this.loadDashboards();
+      });
+    }
+  }
+
+  isInteractiveDashboard(dashboard: Dashboardd): boolean {
+    return !!(dashboard.model || dashboard.groupBy || dashboard.aggregation);
+  }
+}
