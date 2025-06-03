@@ -904,3 +904,159 @@ manage html
     </app-interactive-dashboard>
   </div>
 </div>
+
+
+
+
+Here’s a full working version of your ManageDashboardComponent using Angular standalone components, including AgGridModule.withComponents() and ActionCellRendererComponent integration.
+
+
+---
+
+✅ manage-dashboard.component.ts
+
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AgGridModule } from 'ag-grid-angular';
+import { ColDef, GridReadyEvent } from 'ag-grid-community';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+
+import { ActionCellRendererComponent } from './action-cell-renderer.component'; // Update path if needed
+
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css'],
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    AgGridModule.withComponents([ActionCellRendererComponent]),
+    ActionCellRendererComponent,
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: any[] = []; // Populate with your dashboard data
+
+  columnDefs: ColDef[] = [
+    { headerName: 'Name', field: 'name' },
+    { headerName: 'Type', field: 'type' },
+    {
+      headerName: 'Actions',
+      field: 'actions',
+      cellRenderer: 'appActionCellRenderer',
+      cellRendererParams: {
+        onEditClicked: this.onEditDashboard.bind(this),
+        onDeleteClicked: this.onDeleteDashboard.bind(this),
+      },
+    },
+  ];
+
+  defaultColDef: ColDef = {
+    flex: 1,
+    sortable: true,
+    filter: true,
+    resizable: true,
+  };
+
+  frameworkComponents = {
+    appActionCellRenderer: ActionCellRendererComponent,
+  };
+
+  isBrowser = true;
+
+  ngOnInit(): void {
+    // load data here if needed
+  }
+
+  onGridReady(event: GridReadyEvent): void {
+    // optional grid setup
+  }
+
+  onEditDashboard(dashboard: any): void {
+    console.log('Edit clicked', dashboard);
+    // handle edit logic
+  }
+
+  onDeleteDashboard(dashboardId: string): void {
+    console.log('Delete clicked', dashboardId);
+    // handle delete logic
+  }
+}
+
+
+---
+
+✅ action-cell-renderer.component.ts
+
+import { Component } from '@angular/core';
+import { ICellRendererAngularComp } from 'ag-grid-angular';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+
+@Component({
+  selector: 'app-action-cell-renderer',
+  standalone: true,
+  template: `
+    <button mat-icon-button color="primary" (click)="onEditClicked()">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="onDeleteClicked()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  `,
+  imports: [CommonModule, MatButtonModule, MatIconModule],
+})
+export class ActionCellRendererComponent implements ICellRendererAngularComp {
+  params: any;
+
+  agInit(params: any): void {
+    this.params = params;
+  }
+
+  refresh(): boolean {
+    return false;
+  }
+
+  onEditClicked(): void {
+    this.params.onEditClicked(this.params.data);
+  }
+
+  onDeleteClicked(): void {
+    this.params.onDeleteClicked(this.params.data.id);
+  }
+}
+
+
+---
+
+✅ manage-dashboard.component.html
+
+<div class="all-dashboards-section">
+  <h3 class="section-title">All Dashboards</h3>
+
+  <div class="table-container">
+    <ng-container *ngIf="isBrowser">
+      <ag-grid-angular
+        class="ag-theme-balham"
+        style="width: 100%; height: 500px;"
+        [rowData]="tableData"
+        [columnDefs]="columnDefs"
+        [defaultColDef]="defaultColDef"
+        [frameworkComponents]="frameworkComponents"
+        (gridReady)="onGridReady($event)">
+      </ag-grid-angular>
+    </ng-container>
+  </div>
+</div>
+
+
+---
+
+Let me know if you want help plugging in the real dashboard data or connecting it to your backend.
+
