@@ -396,3 +396,121 @@ export class ManageDashboardComponent implements OnInit {
     return !!(dashboard.model || dashboard.groupBy || dashboard.aggregation);
   }
 }
+
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { DashboardService } from 'src/app/services/dashboard.service';
+import { Dashboard } from 'src/app/models/dashboard.model';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css']
+})
+export class ManageDashboardComponent implements OnInit {
+
+  tableData: Dashboard[] = [];
+  selectedDashboard: Dashboard | null = null;
+
+  dashboards = [
+    {
+      id: 'blank',
+      name: 'Blank Dashboard',
+      icon: '',
+      description: 'Start with a blank canvas'
+    },
+    {
+      id: 'interactive',
+      name: 'Interactive Dashboard',
+      icon: '',
+      description: 'Pre-built interactive components'
+    }
+  ];
+
+  tableHeaders = [
+    { key: 'name', label: 'Name' },
+    { key: 'description', label: 'Description' },
+    { key: 'createdBy', label: 'Created By' },
+    { key: 'createdDate', label: 'Created Date' },
+    { key: 'modifiedBy', label: 'Modified By' },
+    { key: 'modifiedDate', label: 'Modified Date' },
+    { key: 'public', label: 'Public' },
+    { key: 'action', label: 'Action' }
+  ];
+
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+
+  selectedBlankDashboard?: Dashboard;
+  selectedInteractiveDashboard?: Dashboard;
+
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe({
+      next: (data) => this.tableData = data,
+      error: () => alert('Failed to load dashboards')
+    });
+  }
+
+  onSelectDashboard(dashboardType: string): void {
+    if (dashboardType === 'blank') {
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    } else if (dashboardType === 'interactive') {
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    }
+    this.selectDashboard.emit(dashboardType);
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = undefined;
+    this.selectedInteractiveDashboard = undefined;
+  }
+
+  onNewDashboard(): void {
+    this.selectedDashboard = null;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+
+  onEditDashboard(dashboard: Dashboard): void {
+    this.selectedDashboard = dashboard;
+    if (this.isInteractiveDashboard(dashboard)) {
+      this.selectedInteractiveDashboard = dashboard;
+      this.showInteractiveDashboard = true;
+    } else {
+      this.selectedBlankDashboard = dashboard;
+      this.showBlankDashboard = true;
+    }
+  }
+
+  onDeleteDashboard(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe({
+        next: () => {
+          this.tableData = this.tableData.filter(d => d.id !== id);
+          alert('Dashboard deleted successfully.');
+        },
+        error: () => alert('Delete failed')
+      });
+    }
+  }
+
+  isInteractiveDashboard(dashboard: Dashboard): boolean {
+    return !!(dashboard.model || dashboard.groupBy || dashboard.aggregation);
+  }
+
+  onClose(): void {
+    this.closeDashboard.emit();
+  }
+}
