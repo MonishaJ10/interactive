@@ -514,3 +514,93 @@ export class ManageDashboardComponent implements OnInit {
     this.closeDashboard.emit();
   }
 }
+
+
+
+
+<div class="manage-dashboard-container">
+  <!-- Main Manage Dashboard View -->
+  <div *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+    <!-- Header -->
+    <div class="header">
+      <h2 class="title">Manage Dashboard</h2>
+      <button class="close-btn" (click)="onClose()">x</button>
+    </div>
+
+    <!-- New Dashboard Button -->
+    <div class="new-dashboard-section">
+      <button class="new-dashboard-btn" (click)="onNewDashboard()">
+        <span class="plus-icon">+</span>
+        New Dashboard
+      </button>
+    </div>
+
+    <!-- Dashboard Types -->
+    <div class="dashboard-types">
+      <div class="dashboard-card"
+           *ngFor="let dashboard of dashboards"
+           (click)="onSelectDashboard(dashboard.id)">
+        <div class="dashboard-icon">{{ dashboard.icon }}</div>
+        <div class="dashboard-name">{{ dashboard.name }}</div>
+      </div>
+    </div>
+
+    <!-- All Dashboards Section -->
+    <div class="all-dashboards-section">
+      <h3 class="section-title">All Dashboards</h3>
+      <div class="table-container">
+        <table class="dashboards-table">
+          <thead>
+            <tr>
+              <th *ngFor="let header of tableHeaders">{{ header.label }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="tableData.length === 0" class="no-data-row">
+              <td [attr.colspan]="tableHeaders.length" class="no-data-cell">No Rows To Show</td>
+            </tr>
+            <tr *ngFor="let row of tableData">
+              <td *ngFor="let header of tableHeaders">
+                <ng-container [ngSwitch]="header.key">
+                  <span *ngSwitchCase="'createdDate'">{{ row.createdDate | date: 'short' }}</span>
+                  <span *ngSwitchCase="'modifiedDate'">{{ row.modifiedDate | date: 'short' }}</span>
+                  <span *ngSwitchCase="'public'">{{ row.public ? 'Yes' : 'No' }}</span>
+                  <span *ngSwitchCase="'action'">
+                    <button mat-icon-button color="primary" (click)="onEditDashboard(row)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="onDeleteDashboard(row.id)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </span>
+                  <span *ngSwitchDefault>{{ row[header.key] }}</span>
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blank Dashboard View -->
+  <div *ngIf="showBlankDashboard">
+    <app-blank-dashboard
+      [editData]="selectedBlankDashboard"
+      (dashboardClose)="onBackToManage()">
+    </app-blank-dashboard>
+  </div>
+
+  <!-- Interactive Dashboard View -->
+  <div *ngIf="showInteractiveDashboard" class="dashboard-view">
+    <div class="dashboard-header">
+      <button class="back-btn" (click)="onBackToManage()">Back to Manage</button>
+      <button class="close-btn" (click)="onClose()">x</button>
+    </div>
+    <app-interactive-dashboard
+      *ngIf="showInteractiveDashboard"
+      [editData]="selectedInteractiveDashboard"
+      (dashboardClose)="onBackToManage()">
+    </app-interactive-dashboard>
+  </div>
+</div>
