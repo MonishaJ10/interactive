@@ -1213,6 +1213,38 @@ export class AgGridPlaceholderComponent {}
 Would you like the working dashboard.model.ts and dashboard.service.ts cleaned up too?
 
 
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Dashboardd } from './dashboard.model';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DashboardService {
+  private apiUrl = 'http://localhost:8083/api/dashboards';
+
+  constructor(private http: HttpClient) {}
+
+  getDashboards(): Observable<Dashboardd[]> {
+    console.log('Calling API:', this.apiUrl);
+    return this.http.get<Dashboardd[]>(this.apiUrl);
+  }
+
+  addDashboard(dashboard: Dashboardd): Observable<Dashboardd> {
+    return this.http.post<Dashboardd>(this.apiUrl, dashboard);
+  }
+
+  deleteDashboard(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  updateDashboard(id: number, dashboard: Dashboardd): Observable<Dashboardd> {
+    return this.http.put<Dashboardd>(`${this.apiUrl}/${id}`, dashboard);
+  }
+}
+
+
 
 
 
