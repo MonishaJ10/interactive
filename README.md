@@ -1030,7 +1030,9 @@ export class ActionCellRendererComponent implements ICellRendererAngularComp {
   onDeleteClicked(): void {
     this.params.onDeleteClicked(this.params.data.id);
   }
-}
+}______________________
+
+Thanks! Based on all your shared context, here is a clean and working setup for:
 
 
 ---
@@ -1039,9 +1041,8 @@ export class ActionCellRendererComponent implements ICellRendererAngularComp {
 
 <div class="all-dashboards-section">
   <h3 class="section-title">All Dashboards</h3>
-
   <div class="table-container">
-    <ng-container *ngIf="isBrowser">
+    <ng-container *ngIf="isBrowser; else placeholder">
       <ag-grid-angular
         class="ag-theme-balham"
         style="width: 100%; height: 500px;"
@@ -1052,11 +1053,166 @@ export class ActionCellRendererComponent implements ICellRendererAngularComp {
         (gridReady)="onGridReady($event)">
       </ag-grid-angular>
     </ng-container>
+    <ng-template #placeholder>
+      <app-ag-grid-placeholder></app-ag-grid-placeholder>
+    </ng-template>
   </div>
 </div>
 
 
 ---
 
-Let me know if you want help plugging in the real dashboard data or connecting it to your backend.
+✅ manage-dashboard.component.ts
+
+import { Component, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { AgGridModule } from 'ag-grid-angular';
+import { ColDef } from 'ag-grid-community';
+import { DashboardService } from '../../services/dashboard.service';
+import { ActionCellRendererComponent } from '../action-cell-renderer/action-cell-renderer.component';
+import { AgGridPlaceholderComponent } from '../ag-grid-placeholder/ag-grid-placeholder.component';
+import { PLATFORM_ID } from '@angular/core';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  imports: [CommonModule, AgGridModule, ActionCellRendererComponent, AgGridPlaceholderComponent],
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css']
+})
+export class ManageDashboardComponent {
+  private dashboardService = inject(DashboardService);
+  private platformId = inject(PLATFORM_ID);
+
+  isBrowser = isPlatformBrowser(this.platformId);
+
+  tableData: any[] = [];
+
+  frameworkComponents = {
+    actionCellRenderer: ActionCellRendererComponent
+  };
+
+  columnDefs: ColDef[] = [
+    { field: 'name', headerName: 'Name' },
+    { field: 'description', headerName: 'Description' },
+    { field: 'createdBy', headerName: 'Created By' },
+    { field: 'createdDate', headerName: 'Created Date', valueFormatter: this.dateFormatter },
+    { field: 'isPublic', headerName: 'Public', valueFormatter: this.booleanFormatter },
+    {
+      field: 'actions',
+      cellRenderer: 'actionCellRenderer',
+      headerName: 'Actions',
+      cellRendererParams: {
+        onEditClicked: (data: any) => this.editDashboard(data),
+        onDeleteClicked: (id: number) => this.deleteDashboard(id)
+      }
+    }
+  ];
+
+  defaultColDef: ColDef = {
+    sortable: true,
+    filter: true,
+    resizable: true
+  };
+
+  ngOnInit() {
+    this.loadDashboards();
+  }
+
+  onGridReady(params: any) {
+    params.api.sizeColumnsToFit();
+  }
+
+  loadDashboards() {
+    this.dashboardService.getDashboards().subscribe(data => {
+      this.tableData = data;
+    });
+  }
+
+  editDashboard(data: any) {
+    // Logic to open edit modal and populate with data
+    console.log('Edit dashboard', data);
+  }
+
+  deleteDashboard(id: number) {
+    this.dashboardService.deleteDashboard(id).subscribe(() => {
+      this.loadDashboards();
+    });
+  }
+
+  dateFormatter(params: any): string {
+    return new Date(params.value).toLocaleDateString();
+  }
+
+  booleanFormatter(params: any): string {
+    return params.value ? 'Yes' : 'No';
+  }
+}
+
+
+---
+
+✅ action-cell-renderer.component.ts
+
+import { Component } from '@angular/core';
+import { ICellRendererAngularComp } from 'ag-grid-angular';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-action-cell-renderer',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule],
+  template: `
+    <button mat-icon-button color="primary" (click)="onEditClicked()">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="onDeleteClicked()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  `
+})
+export class ActionCellRendererComponent implements ICellRendererAngularComp {
+  params: any;
+
+  agInit(params: any): void {
+    this.params = params;
+  }
+
+  refresh(): boolean {
+    return false;
+  }
+
+  onEditClicked(): void {
+    this.params.onEditClicked(this.params.data);
+  }
+
+  onDeleteClicked(): void {
+    this.params.onDeleteClicked(this.params.data.id);
+  }
+}
+
+
+---
+
+✅ ag-grid-placeholder.component.ts (Optional fallback when not browser)
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-ag-grid-placeholder',
+  standalone: true,
+  template: `<p>Loading dashboard table...</p>`
+})
+export class AgGridPlaceholderComponent {}
+
+
+---
+
+Would you like the working dashboard.model.ts and dashboard.service.ts cleaned up too?
+
+
+
+
 
