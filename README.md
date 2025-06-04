@@ -1246,5 +1246,330 @@ export class DashboardService {
 
 
 
+manage Comp html
+import { Component, OnInit, inject } from '@angular/core';
+import { ColDef, GridReadyEvent } from 'ag-grid-community';
+import { DashboardService } from '../../../services/dashboard.service';
+import { Dashboardd } from '../../../services/dashboard.model';
+import { ActionCellRendererComponent } from './action-cell-renderer.component';
+import { AgGridAngular } from 'ag-grid-angular';
 
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  imports: [AgGridAngular, ActionCellRendererComponent],
+  templateUrl: './manage-dashboard.component.html'
+})
+export class ManageDashboardComponent implements OnInit {
+  dashboardService = inject(DashboardService);
+
+  tableData: Dashboardd[] = [];
+  columnDefs: ColDef[] = [];
+  defaultColDef: ColDef = {
+    flex: 1,
+    sortable: true,
+    filter: true,
+    resizable: true
+  };
+  frameworkComponents: any;
+  selectedDashboard: Dashboardd | null = null;
+
+  showBlankModal = false;
+  showInteractiveModal = false;
+  isEditingBlank = false;
+  isEditingInteractive = false;
+
+  isBrowser = typeof window !== 'undefined';
+
+  ngOnInit(): void {
+    this.frameworkComponents = {
+      actionCellRenderer: ActionCellRendererComponent
+    };
+
+    this.columnDefs = [
+      { field: 'id' },
+      { field: 'name' },
+      { field: 'description' },
+      { field: 'createdBy' },
+      { field: 'modifiedBy' },
+      {
+        headerName: 'Actions',
+        cellRenderer: 'actionCellRenderer',
+        cellRendererParams: {
+          onEditClicked: this.onEditClicked.bind(this),
+          onDeleteClicked: this.onDeleteClicked.bind(this)
+        }
+      }
+    ];
+
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe(data => {
+      this.tableData = data;
+    });
+  }
+
+  onGridReady(params: GridReadyEvent): void {
+    params.api.sizeColumnsToFit();
+  }
+
+  onEditClicked(dashboard: Dashboardd): void {
+    this.selectedDashboard = dashboard;
+
+    const isInteractive = !!(
+      dashboard.model || dashboard.groupBy || dashboard.aggregation || dashboard.aggregationField
+    );
+
+    if (isInteractive) {
+      this.isEditingInteractive = true;
+      this.isEditingBlank = false;
+      this.showInteractiveModal = true;
+    } else {
+      this.isEditingBlank = true;
+      this.isEditingInteractive = false;
+      this.showBlankModal = true;
+    }
+  }
+
+  onDeleteClicked(id: number): void {
+    this.dashboardService.deleteDashboard(id).subscribe(() => {
+      this.loadDashboards();
+    });
+  }
+
+  closeBlankModal(): void {
+    this.showBlankModal = false;
+    this.selectedDashboard = null;
+    this.loadDashboards();
+  }
+
+  closeInteractiveModal(): void {
+    this.showInteractiveModal = false;
+    this.selectedDashboard = null;
+    this.loadDashboards();
+  }
+}
+
+ts
+import { Component, OnInit } from '@angular/core';
+import { ColDef } from 'ag-grid-community';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+import { ActionCellRendererComponent } from '../action-cell-renderer.component';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+  standalone: true,
+  imports: [ActionCellRendererComponent],
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+  columnDefs: ColDef[] = [
+    { field: 'name', headerName: 'Name' },
+    { field: 'description', headerName: 'Description' },
+    { field: 'createdBy', headerName: 'Created By' },
+    { field: 'createdDate', headerName: 'Created Date', valueFormatter: this.dateFormatter },
+    { field: 'modifiedBy', headerName: 'Modified By' },
+    { field: 'modifiedDate', headerName: 'Modified Date', valueFormatter: this.dateFormatter },
+    { field: 'isPublic', headerName: 'Public', valueFormatter: this.booleanFormatter },
+    {
+      headerName: 'Actions',
+      cellRenderer: ActionCellRendererComponent,
+      cellRendererParams: {
+        onEditClicked: (dashboard: Dashboardd) => this.onEditClicked(dashboard),
+        onDeleteClicked: (id: number) => this.onDeleteClicked(id),
+      },
+    }
+  ];
+
+  defaultColDef: ColDef = {
+    resizable: true,
+    sortable: true,
+    filter: true,
+  };
+
+  frameworkComponents = {
+    actionCellRenderer: ActionCellRendererComponent,
+  };
+
+  isBrowser = typeof window !== 'undefined';
+  showBlankModal = false;
+  showInteractiveModal = false;
+  isEditingBlank = false;
+  isEditingInteractive = false;
+  selectedDashboard: Dashboardd | null = null;
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe(data => {
+      this.tableData = data;
+    });
+  }
+
+  onGridReady(): void {}
+
+  dateFormatter(params: any): string {
+    return new Date(params.value).toLocaleDateString();
+  }
+
+  booleanFormatter(params: any): string {
+    return params.value ? 'Yes' : 'No';
+  }
+
+  onEditClicked(dashboard: Dashboardd): void {
+    this.selectedDashboard = dashboard;
+    const isInteractive = !!(dashboard.model || dashboard.groupBy || dashboard.aggregation || dashboard.aggregationField);
+
+    if (isInteractive) {
+      this.isEditingInteractive = true;
+      this.isEditingBlank = false;
+      this.showInteractiveModal = true;
+    } else {
+      this.isEditingBlank = true;
+      this.isEditingInteractive = false;
+      this.showBlankModal = true;
+    }
+  }
+
+  onDeleteClicked(id: number): void {
+    this.dashboardService.deleteDashboard(id).subscribe(() => {
+      this.loadDashboards();
+    });
+  }
+
+  onModalClosed(): void {
+    this.showBlankModal = false;
+    this.showInteractiveModal = false;
+    this.selectedDashboard = null;
+    this.isEditingBlank = false;
+    this.isEditingInteractive = false;
+    this.loadDashboards();
+  }
+}
+
+html
+<div class="all-dashboards-section">
+  <h3 class="section-title">All Dashboards</h3>
+
+  <div class="table-container">
+    <ng-container *ngIf="isBrowser; else placeholder">
+      <ag-grid-angular
+        class="ag-theme-balham"
+        style="width: 100%; height: 500px;"
+        [rowData]="tableData"
+        [columnDefs]="columnDefs"
+        [defaultColDef]="defaultColDef"
+        [frameworkComponents]="frameworkComponents"
+        (gridReady)="onGridReady($event)">
+      </ag-grid-angular>
+    </ng-container>
+
+    <ng-template #placeholder>
+      <app-ag-grid-placeholder></app-ag-grid-placeholder>
+    </ng-template>
+  </div>
+
+  <ng-container *ngIf="showBlankModal">
+    <app-blank-dashboard
+      [dashboardData]="selectedDashboard"
+      [isEditMode]="isEditingBlank"
+      (closeModal)="onModalClosed()">
+    </app-blank-dashboard>
+  </ng-container>
+
+  <ng-container *ngIf="showInteractiveModal">
+    <app-interactive-dashboard
+      [dashboardData]="selectedDashboard"
+      [isEditMode]="isEditingInteractive"
+      (closeModal)="onModalClosed()">
+    </app-interactive-dashboard>
+  </ng-container>
+</div>
+
+dashboard service ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Dashboardd } from './dashboard.model';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class DashboardService {
+  private apiUrl = 'http://localhost:8083/api/dashboards';
+
+  constructor(private http: HttpClient) {}
+
+  getDashboards(): Observable<Dashboardd[]> {
+    return this.http.get<Dashboardd[]>(this.apiUrl);
+  }
+
+  addDashboard(dashboard: Dashboardd): Observable<Dashboardd> {
+    return this.http.post<Dashboardd>(this.apiUrl, dashboard);
+  }
+
+  updateDashboard(id: number, dashboard: Dashboardd): Observable<Dashboardd> {
+    return this.http.put<Dashboardd>(`${this.apiUrl}/${id}`, dashboard);
+  }
+
+  deleteDashboard(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+}
+
+action cell ts
+import { Component } from '@angular/core';
+import { ICellRendererAngularComp } from 'ag-grid-angular';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-action-cell-renderer',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule],
+  template: `
+    <button mat-icon-button color="primary" (click)="onEditClicked()">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="onDeleteClicked()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  `
+})
+export class ActionCellRendererComponent implements ICellRendererAngularComp {
+  params: any;
+
+  agInit(params: any): void {
+    this.params = params;
+  }
+
+  refresh(): boolean {
+    return false;
+  }
+
+  onEditClicked(): void {
+    this.params.onEditClicked(this.params.data);
+  }
+
+  onDeleteClicked(): void {
+    this.params.onDeleteClicked(this.params.data.id);
+  }
+}
+
+ag grid ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-ag-grid-placeholder',
+  standalone: true,
+  template: `<div class="placeholder">Loading Grid...</div>`,
+})
+export class AgGridPlaceholderComponent {}
 
