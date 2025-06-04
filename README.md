@@ -1573,3 +1573,146 @@ import { Component } from '@angular/core';
 })
 export class AgGridPlaceholderComponent {}
 
+
+
+
+
+
+import { Component, OnInit } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+import { ColDef } from 'ag-grid-community';
+import { ActionCellRendererComponent } from '../action-cell-renderer.component';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+  standalone: true,
+  imports: [ActionCellRendererComponent],
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+
+  selectedBlankDashboard: Dashboardd | null = null;
+  selectedInteractiveDashboard: Dashboardd | null = null;
+
+  columnDefs: ColDef[] = [
+    { field: 'name', headerName: 'Name' },
+    { field: 'description', headerName: 'Description' },
+    { field: 'createdBy', headerName: 'Created By' },
+    { field: 'createdDate', headerName: 'Created Date', valueFormatter: this.dateFormatter },
+    { field: 'modifiedBy', headerName: 'Modified By' },
+    { field: 'modifiedDate', headerName: 'Modified Date', valueFormatter: this.dateFormatter },
+    { field: 'isPublic', headerName: 'Public', valueFormatter: this.booleanFormatter },
+    {
+      headerName: 'Actions',
+      cellRenderer: ActionCellRendererComponent,
+      cellRendererParams: {
+        onEditClicked: (dashboard: Dashboardd) => this.onEditClicked(dashboard),
+        onDeleteClicked: (id: number) => this.onDeleteClicked(id),
+      },
+    }
+  ];
+
+  defaultColDef: ColDef = {
+    resizable: true,
+    sortable: true,
+    filter: true,
+  };
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe(data => {
+      this.tableData = data;
+    });
+  }
+
+  dateFormatter(params: any): string {
+    return new Date(params.value).toLocaleDateString();
+  }
+
+  booleanFormatter(params: any): string {
+    return params.value ? 'Yes' : 'No';
+  }
+
+  onEditClicked(dashboard: Dashboardd): void {
+    const isInteractive = !!(dashboard.model || dashboard.groupBy || dashboard.aggregation || dashboard.aggregationField);
+
+    if (isInteractive) {
+      this.selectedInteractiveDashboard = dashboard;
+      this.showInteractiveDashboard = true;
+    } else {
+      this.selectedBlankDashboard = dashboard;
+      this.showBlankDashboard = true;
+    }
+  }
+
+  onDeleteClicked(id: number): void {
+    this.dashboardService.deleteDashboard(id).subscribe(() => {
+      this.loadDashboards();
+    });
+  }
+
+  onDashboardCreated(): void {
+    this.loadDashboards();
+    this.onBackToManage();
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = null;
+    this.selectedInteractiveDashboard = null;
+  }
+
+  onClose(): void {
+    this.onBackToManage();
+  }
+}
+
+
+
+<div class="all-dashboards-section">
+  <h3 class="section-title">All Dashboards</h3>
+
+  <!-- Main Dashboard Table -->
+  <div class="table-container" *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+    <ag-grid-angular
+      class="ag-theme-balham"
+      style="width: 100%; height: 500px;"
+      [rowData]="tableData"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef">
+    </ag-grid-angular>
+  </div>
+
+  <!-- Blank Dashboard View -->
+  <div *ngIf="showBlankDashboard">
+    <app-blank-dashboard
+      [editData]="selectedBlankDashboard"
+      (dashboardClose)="onBackToManage()">
+    </app-blank-dashboard>
+  </div>
+
+  <!-- Interactive Dashboard View -->
+  <div *ngIf="showInteractiveDashboard">
+    <div class="dashboard-header">
+      <button class="back-btn" (click)="onBackToManage()">Back to Manage</button>
+      <button class="close-btn" (click)="onClose()">x</button>
+    </div>
+    <app-interactive-dashboard
+      [editData]="selectedInteractiveDashboard"
+      (dashboardCreated)="onDashboardCreated()"
+      (dashboardClose)="onBackToManage()">
+    </app-interactive-dashboard>
+  </div>
+</div>
+
