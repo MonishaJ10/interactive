@@ -1716,3 +1716,228 @@ export class ManageDashboardComponent implements OnInit {
   </div>
 </div>
 
+__________________
+To make your current ManageDashboardComponent look like Image 1 while preserving the ag-grid and incorporating your provided HTML/CSS (from Image 2), here is a cleaned-up and corrected version of the component HTML and associated CSS structure.
+
+
+---
+
+✅ Final manage-dashboard.component.html (converted like Image 1):
+
+<div class="manage-dashboard-container">
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title">Manage Dashboard</h1>
+    <button class="close-btn" (click)="onClose()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- New Dashboard Buttons -->
+  <div class="new-dashboard-section">
+    <div class="dashboard-types">
+      <div class="dashboard-card" (click)="onNewBlankDashboard()">
+        <mat-icon class="dashboard-icon">speed</mat-icon>
+        <div class="dashboard-name">Blank Dashboard</div>
+      </div>
+      <div class="dashboard-card" (click)="onNewInteractiveDashboard()">
+        <mat-icon class="dashboard-icon">insights</mat-icon>
+        <div class="dashboard-name">Interactive Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Dashboards Table -->
+  <div class="all-dashboards-section">
+    <h2 class="section-title">All Dashboards</h2>
+    <div class="table-container">
+      <ag-grid-angular
+        class="ag-theme-alpine"
+        style="width: 100%; height: 500px;"
+        [gridOptions]="gridOptions"
+        [rowData]="tableData"
+        (gridReady)="onGridReady($event)">
+      </ag-grid-angular>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <app-blank-dashboard
+    *ngIf="showBlankDashboard"
+    [editData]="selectedBlankDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()">
+  </app-blank-dashboard>
+
+  <app-interactive-dashboard
+    *ngIf="showInteractiveDashboard"
+    [editData]="selectedInteractiveDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()">
+  </app-interactive-dashboard>
+</div>
+
+
+---
+
+✅ Updated manage-dashboard.component.scss (Styled like Image 1):
+
+.manage-dashboard-container {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #f0f0f0;
+        color: #333;
+      }
+    }
+  }
+
+  .new-dashboard-section {
+    margin-bottom: 30px;
+
+    .dashboard-types {
+      display: flex;
+      gap: 20px;
+
+      .dashboard-card {
+        background-color: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 30px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 150px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        &:hover {
+          border-color: #007bff;
+          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .dashboard-icon {
+          font-size: 60px;
+          margin-bottom: 15px;
+          color: #5ca0fa;
+        }
+
+        .dashboard-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #333;
+        }
+      }
+    }
+  }
+
+  .all-dashboards-section {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .section-title {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+
+    .dashboard-types {
+      flex-direction: column;
+      gap: 15px;
+
+      .dashboard-card {
+        min-width: auto;
+      }
+    }
+
+    .header {
+      padding: 12px 15px;
+
+      .title {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+
+---
+
+✅ Notes for Integration:
+
+Ensure your component has:
+
+showBlankDashboard: boolean;
+showInteractiveDashboard: boolean;
+selectedBlankDashboard: Dashboardd | null;
+selectedInteractiveDashboard: Dashboardd | null;
+
+In the component .ts, define:
+
+onNewBlankDashboard() {
+  this.selectedBlankDashboard = null;
+  this.showBlankDashboard = true;
+  this.showInteractiveDashboard = false;
+}
+
+onNewInteractiveDashboard() {
+  this.selectedInteractiveDashboard = null;
+  this.showInteractiveDashboard = true;
+  this.showBlankDashboard = false;
+}
+
+
+Would you like the updated .ts file included with complete methods for onClose, onDashboardCreated, onGridReady, etc. as well?
+
