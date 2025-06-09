@@ -1941,3 +1941,30 @@ onNewInteractiveDashboard() {
 
 Would you like the updated .ts file included with complete methods for onClose, onDashboardCreated, onGridReady, etc. as well?
 
+
+
+onDeleteClicked(dashboard: Dashboardd): void {
+  if (confirm('Are you sure you want to delete this dashboard?')) {
+    this.dashboardService.deleteDashboard(dashboard.id).subscribe({
+      next: () => {
+        console.log('Dashboard deleted');
+        this.loadDashboards(); // 🔄 Refresh list
+      },
+      error: (err) => {
+        console.error('Error deleting dashboard', err);
+      },
+    });
+  }
+}
+
+loadDashboards(): void {
+  this.dashboardService.getAllDashboards().subscribe({
+    next: (data) => {
+      this.blankDashboards = data.filter(d => d.type === 'blank');
+      this.interactiveDashboards = data.filter(d => d.type === 'interactive');
+    },
+    error: (err) => {
+      console.error('Error loading dashboards', err);
+    },
+  });
+}
