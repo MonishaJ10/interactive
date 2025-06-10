@@ -2228,3 +2228,127 @@ html
     (dashboardCreated)="onDashboardCreated()"
   ></app-interactive-dashboard>
 </div>
+
+
+
+
+// manage-dashboard.component.ts
+import { Component, OnInit } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css'],
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+  selectedBlankDashboard?: Dashboardd;
+  selectedInteractiveDashboard?: Dashboardd;
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getAllDashboards().subscribe((data) => {
+      this.tableData = data;
+    });
+  }
+
+  toggleBlankDashboard(): void {
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = undefined;
+  }
+
+  toggleInteractiveDashboard(): void {
+    this.showInteractiveDashboard = true;
+    this.showBlankDashboard = false;
+    this.selectedInteractiveDashboard = undefined;
+  }
+
+  onEditClicked(dashboard: Dashboardd): void {
+    const isInteractive = !!(
+      dashboard.model &&
+      dashboard.groupBy &&
+      dashboard.aggregation &&
+      dashboard.aggregationField &&
+      dashboard.columnField
+    );
+
+    if (isInteractive) {
+      this.selectedInteractiveDashboard = { ...dashboard };
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    } else {
+      this.selectedBlankDashboard = { ...dashboard };
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    }
+  }
+
+  onDeleteClicked(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe(() => {
+        this.loadDashboards();
+      });
+    }
+  }
+
+  onDashboardCreated(): void {
+    this.loadDashboards();
+    this.onBackToManage();
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+  }
+}
+
+<!-- manage-dashboard.component.html -->
+<div class="all-dashboards-section">
+  <h2 class="section-title">All Dashboards</h2>
+  <div class="action-buttons">
+    <button mat-button color="primary" (click)="toggleBlankDashboard()">+ New Blank Dashboard</button>
+    <button mat-button color="accent" (click)="toggleInteractiveDashboard()">+ New Interactive Dashboard</button>
+  </div>
+
+  <div class="table-container" *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+    <ag-grid-angular
+      class="ag-theme-balham"
+      style="width: 100%; height: 500px;"
+      [rowData]="tableData"
+      [columnDefs]="[
+        { headerName: 'Name', field: 'name' },
+        { headerName: 'Type', field: 'type' },
+        {
+          headerName: 'Actions',
+          cellRenderer: params => {
+            return `<button (click)='onEditClicked(${params.data.id})'>Edit</button>
+                    <button (click)='onDeleteClicked(${params.data.id})'>Delete</button>`;
+          }
+        }
+      ]">
+    </ag-grid-angular>
+  </div>
+
+  <app-blank-dashboard
+    *ngIf="showBlankDashboard"
+    [editData]="selectedBlankDashboard"
+    (dashboardClose)="onBackToManage()">
+  </app-blank-dashboard>
+
+  <app-interactive-dashboard
+    *ngIf="showInteractiveDashboard"
+    [editData]="selectedInteractiveDashboard"
+    (dashboardCreated)="onDashboardCreated()"
+    (dashboardClose)="onBackToManage()">
+  </app-interactive-dashboard>
+</div>
