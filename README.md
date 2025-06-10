@@ -1968,3 +1968,263 @@ loadDashboards(): void {
     },
   });
 }
+--------------------------
+import {
+  Component,
+  EventEmitter,
+  OnInit,
+  Output,
+  Renderer2,
+  ElementRef
+} from '@angular/core';
+import { DashboardService } from './dashboard.service';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { InteractiveDashboardComponent } from './interactive-dashboard/interactive-dashboard.component';
+import { BlankDashboardComponent } from './blank-dashboard/blank-dashboard.component';
+import { Dashboardd } from './dashboard.model';
+import { AgGridModule } from 'ag-grid-angular';
+import { ColDef } from 'ag-grid-community';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    BlankDashboardComponent,
+    InteractiveDashboardComponent,
+    AgGridModule
+  ]
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+  selectedBlankDashboard?: Dashboardd;
+  selectedInteractiveDashboard?: Dashboardd;
+
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
+
+  columnDefs: ColDef[] = [
+    { field: 'name', headerName: 'Name' },
+    { field: 'description', headerName: 'Description' },
+    { field: 'createdBy', headerName: 'Created By' },
+    {
+      field: 'createdDate',
+      headerName: 'Created Date',
+      valueFormatter: this.dateFormatter
+    },
+    { field: 'modifiedBy', headerName: 'Modified By' },
+    {
+      field: 'modifiedDate',
+      headerName: 'Modified Date',
+      valueFormatter: this.dateFormatter
+    },
+    {
+      field: 'isPublic',
+      headerName: 'Public',
+      valueFormatter: this.booleanFormatter
+    },
+    {
+      headerName: 'Actions',
+      cellRenderer: this.actionCellRenderer.bind(this)
+    }
+  ];
+
+  defaultColDef: ColDef = {
+    resizable: true,
+    sortable: true,
+    filter: true
+  };
+
+  gridOptions: any = {
+    columnDefs: this.columnDefs,
+    defaultColDef: this.defaultColDef,
+    rowData: this.tableData,
+    onGridReady: this.onGridReady.bind(this),
+    rowSelection: 'single',
+    pagination: true,
+    paginationPageSize: 10,
+    suppressRowClickSelection: true,
+    animateRows: true
+  };
+
+  constructor(
+    private dashboardService: DashboardService,
+    private renderer: Renderer2,
+    private elementRef: ElementRef
+  ) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe(
+      (data: Dashboardd[]) => {
+        this.tableData = data;
+      },
+      error => {
+        console.error('Failed to load dashboards', error);
+      }
+    );
+  }
+
+  dateFormatter(params: any): string {
+    return new Date(params.value).toLocaleDateString();
+  }
+
+  booleanFormatter(params: any): string {
+    return params.value ? 'Yes' : 'No';
+  }
+
+  onEditClicked(dashboard: Dashboardd): void {
+    const isInteractive = !!(
+      dashboard.model &&
+      dashboard.groupBy &&
+      dashboard.aggregation &&
+      dashboard.aggregationField &&
+      dashboard.columnField
+    );
+
+    if (isInteractive) {
+      this.selectedInteractiveDashboard = dashboard;
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    } else {
+      this.selectedBlankDashboard = dashboard;
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    }
+  }
+
+  onDeleteClicked(id: number): void {
+    this.dashboardService.deleteDashboard(id).subscribe(() => {
+      this.loadDashboards();
+    });
+  }
+
+  onDashboardCreated(): void {
+    this.loadDashboards();
+    this.onBackToManage();
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = undefined;
+    this.selectedInteractiveDashboard = undefined;
+  }
+
+  onClose(): void {
+    this.onBackToManage();
+  }
+
+  toggleBlankDashboard(): void {
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = undefined;
+  }
+
+  toggleInteractiveDashboard(): void {
+    this.showInteractiveDashboard = true;
+    this.showBlankDashboard = false;
+    this.selectedInteractiveDashboard = undefined;
+  }
+
+  onGridReady(params: any): void {
+    params.api.sizeColumnsToFit();
+  }
+
+  actionCellRenderer(params: any): HTMLElement {
+    const div = this.renderer.createElement('div');
+    const editButton = this.renderer.createElement('button');
+    const deleteButton = this.renderer.createElement('button');
+
+    this.renderer.addClass(editButton, 'mat-icon-button');
+    this.renderer.addClass(deleteButton, 'mat-icon-button');
+
+    const editIcon = this.renderer.createElement('mat-icon');
+    const deleteIcon = this.renderer.createElement('mat-icon');
+
+    this.renderer.appendChild(editIcon, this.renderer.createText('edit'));
+    this.renderer.appendChild(deleteIcon, this.renderer.createText('delete'));
+
+    this.renderer.appendChild(editButton, editIcon);
+    this.renderer.appendChild(deleteButton, deleteIcon);
+
+    this.renderer.appendChild(div, editButton);
+    this.renderer.appendChild(div, deleteButton);
+
+    this.renderer.listen(editButton, 'click', () => {
+      this.onEditClicked(params.data);
+    });
+
+    this.renderer.listen(deleteButton, 'click', () => {
+      this.onDeleteClicked(params.data.id);
+    });
+
+    return div;
+  }
+}
+
+html
+<div class="manage-dashboard-container" style="width: 100vw;">
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title">Manage Dashboard</h1>
+    <button class="close-btn" (click)="onClose()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- New Dashboard Buttons -->
+  <div class="new-dashboard-section">
+    <div class="dashboard-types">
+      <div class="dashboard-card" (click)="toggleBlankDashboard()">
+        <mat-icon class="dashboard-icon">speed</mat-icon>
+        <div class="dashboard-name">Blank Dashboard</div>
+      </div>
+
+      <div class="dashboard-card" (click)="toggleInteractiveDashboard()">
+        <mat-icon class="dashboard-icon">analytics</mat-icon>
+        <div class="dashboard-name">Interactive Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Dashboards Table -->
+  <div class="all-dashboards-section">
+    <h2 class="section-title">All Dashboards</h2>
+    <div class="table-container">
+      <ag-grid-angular
+        class="ag-theme-balham"
+        style="width: 100%; height: 500px;"
+        [gridOptions]="gridOptions"
+        [rowData]="tableData"
+        (gridReady)="onGridReady($event)"
+      ></ag-grid-angular>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <app-blank-dashboard
+    *ngIf="showBlankDashboard"
+    [editData]="selectedBlankDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()"
+  ></app-blank-dashboard>
+
+  <app-interactive-dashboard
+    *ngIf="showInteractiveDashboard"
+    [editData]="selectedInteractiveDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()"
+  ></app-interactive-dashboard>
+</div>
