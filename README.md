@@ -1,3 +1,6 @@
+
+
+
 interactive dashboard comp ts
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -2567,3 +2570,469 @@ export class ManageDashboardComponent implements OnInit {
     return div;
   }
 }
+
+
+blank ts
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { AgChartsModule } from 'ag-charts-angular';
+import { AgChartOptions } from 'ag-charts-community';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  imports: [FormsModule, CommonModule, AgChartsModule],
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() editData?: Dashboardd;
+  @Output() dashboardClose = new EventEmitter<void>();
+
+  showModal = true;
+  isFullscreen = false;
+  currentStep = 0;
+  steps = ['Initial', 'Content', 'Layout', 'Review'];
+  isEditMode = false;
+
+  formData = {
+    name: '',
+    description: '',
+    isPublic: false,
+  };
+
+  selectedChart = 'bar';
+  title = '';
+  model = '';
+  groupBy = '';
+  aggregation = '';
+  aggregationField = '';
+
+  modelOptions: string[] = [];
+  groupByOptions: string[] = [];
+  aggregationTypes: string[] = [];
+  aggregationFields: string[] = [];
+
+  barChartOptions: AgChartOptions = { data: [], series: [] };
+  pieChartOptions: AgChartOptions = {
+    data: [],
+    title: { text: 'Portfolio Composition' },
+    series: [],
+  };
+
+  barChartUrl = 'https://isuite-evaluation.dev.echonet/ISUITE/NextGen/assets/barchart.png';
+  pieChartUrl = 'https://isuite-evaluation.dev.echonet/ISUITE/NextGen/assets/piechart.png';
+
+  constructor(private router: Router, private dashboardService: DashboardService) {}
+
+  ngOnInit() {
+    this.dashboardService.getBlankDashboards().subscribe((data) => {
+      this.modelOptions = data.map((item) => item.model).filter((x): x is string => !!x);
+      this.groupByOptions = data.map((item) => item.groupBy).filter((x): x is string => !!x);
+      this.aggregationTypes = data.map((item) => item.aggregation).filter((x): x is string => !!x);
+      this.aggregationFields = data.map((item) => item.aggregationField).filter((x): x is string => !!x);
+    });
+
+    if (this.editData) {
+      this.isEditMode = true;
+      this.formData = {
+        name: this.editData.name || '',
+        description: this.editData.description || '',
+        isPublic: this.editData.isPublic || false,
+      };
+      this.selectedChart = this.editData.chartType || 'bar';
+      this.model = this.editData.model || '';
+      this.groupBy = this.editData.groupBy || '';
+      this.aggregation = this.editData.aggregation || '';
+      this.aggregationField = this.editData.aggregationField || '';
+    }
+  }
+
+  nextStep() {
+    if (this.currentStep === 0 && !this.formData.name.trim()) {
+      alert('Please fill in the required "Name" field.');
+      return;
+    }
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  setChartType(type: string): void {
+    this.selectedChart = type;
+    this.title = `Case Queue by Data Element (${type === 'bar' ? 'Bar Chart' : 'Pie Chart'})`;
+  }
+
+  toggleFullscreen(): void {
+    this.isFullscreen = !this.isFullscreen;
+  }
+
+  addCard(): void {
+    console.log('Card added:', {
+      chartType: this.selectedChart,
+      title: this.title,
+      model: this.model,
+      groupBy: this.groupBy,
+      aggregationField: this.aggregationField,
+    });
+  }
+
+  closeModal(): void {
+    this.dashboardClose.emit();
+  }
+
+  submitDashboard(): void {
+    const dashboardPayload: Dashboardd = {
+      name: this.formData.name,
+      description: this.formData.description,
+      isPublic: this.formData.isPublic,
+      chartType: this.selectedChart,
+      model: this.model,
+      groupBy: this.groupBy,
+      aggregation: this.aggregation,
+      aggregationField: this.aggregationField,
+      createdBy: this.editData?.createdBy || 'h59606',
+      createdDate: this.editData?.createdDate || new Date().toISOString(),
+      modifiedBy: 'h59606',
+      modifiedDate: new Date().toISOString(),
+      type: 'blank',
+    };
+
+    if (this.isEditMode && this.editData?.id) {
+      this.dashboardService.updateDashboard(this.editData.id, dashboardPayload).subscribe({
+        next: () => {
+          console.log('Dashboard updated');
+          this.dashboardClose.emit();
+        },
+        error: (err) => console.error('Update failed', err),
+      });
+    } else {
+      this.dashboardService.addDashboard(dashboardPayload).subscribe({
+        next: () => {
+          console.log('Dashboard created');
+          this.dashboardClose.emit();
+        },
+        error: (err) => console.error('Create failed', err),
+      });
+    }
+  }
+}
+
+interactive ts
+import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AgChartsModule } from 'ag-charts-angular';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+import { InteractiveDashboard } from '../interactiveDashboard.model';
+
+@Component({
+  selector: 'app-interactive-dashboard',
+  standalone: true,
+  imports: [CommonModule, FormsModule, AgChartsModule],
+  templateUrl: './interactive-dashboard.component.html',
+  styleUrls: ['./interactive-dashboard.component.css']
+})
+export class InteractiveDashboardComponent implements OnInit {
+  @Input() editData?: Dashboardd;
+  @Output() dashboardClose = new EventEmitter<void>();
+
+  showModal = true;
+  isFullscreen = false;
+  isEditMode = false;
+  currentStep = 0;
+
+  steps = ['Initial', 'Content', 'Review'];
+  formData = {
+    name: '',
+    description: '',
+    isPublic: true,
+  };
+
+  model = '';
+  groupBy = '';
+  aggregation = '';
+  aggregationField = '';
+  columnField = '';
+  title = '';
+  selectedChart = '';
+
+  availableTemplates = ['BarChart', 'PieChart'];
+  selectedTemplates: string[] = [];
+  dashboards: InteractiveDashboard[] = [];
+
+  barChartUrl = 'https://isuite-evaluation.dev.echonet/ISUITE/NextGen/assets/barchart.png';
+  pieChartUrl = 'https://isuite-evaluation.dev.echonet/ISUITE/NextGen/assets/piechart.png';
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+
+    if (this.editData) {
+      this.isEditMode = true;
+      this.formData.name = this.editData.name || '';
+      this.formData.description = this.editData.description || '';
+      this.formData.isPublic = this.editData.isPublic || false;
+      this.model = this.editData.model || '';
+      this.groupBy = this.editData.groupBy || '';
+      this.aggregation = this.editData.aggregation || '';
+      this.aggregationField = this.editData.aggregationField || '';
+      this.columnField = this.editData.columnField || '';
+      this.selectedTemplates = this.editData.selectedTemplates || [];
+      this.selectedChart = this.editData.selectedChart || '';
+      this.title = this.editData.title || '';
+    }
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getAllInteractiveDashboards().subscribe(data => {
+      this.dashboards = data;
+    });
+  }
+
+  nextStep(): void {
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  setChartType(chartType: string): void {
+    this.selectedChart = chartType;
+    this.title = chartType === 'bar'
+      ? 'Case Queue by Data Element (Bar Chart)'
+      : 'Case Queue by Data Element (Pie Chart)';
+    this.toggleTemplate(this.title);
+  }
+
+  toggleTemplate(template: string): void {
+    if (!this.selectedTemplates.includes(template)) {
+      this.selectedTemplates.push(template);
+    }
+  }
+
+  removeTemplate(template: string): void {
+    this.selectedTemplates = this.selectedTemplates.filter(t => t !== template);
+  }
+
+  toggleFullscreen(): void {
+    this.isFullscreen = !this.isFullscreen;
+  }
+
+  addCard(): void {
+    this.nextStep();
+  }
+
+  closeModal(): void {
+    this.dashboardClose.emit();
+  }
+
+  submitDashboard(): void {
+    const dashboardPayload: Dashboardd = {
+      name: this.formData.name,
+      description: this.formData.description,
+      isPublic: this.formData.isPublic,
+      model: this.model,
+      groupBy: this.groupBy,
+      aggregation: this.aggregation,
+      aggregationField: this.aggregationField,
+      columnField: this.columnField,
+      selectedTemplates: this.selectedTemplates,
+      createdBy: this.editData?.createdBy || 'h59606',
+      createdDate: this.editData?.createdDate || new Date().toISOString(),
+      modifiedBy: 'h59606',
+      modifiedDate: new Date().toISOString(),
+      chartType: 'interactive',
+      type: 'interactive',
+    };
+
+    if (this.isEditMode && this.editData?.id) {
+      this.dashboardService.updateDashboard(this.editData.id, dashboardPayload).subscribe({
+        next: () => {
+          console.log('Interactive Dashboard updated');
+          this.dashboardClose.emit();
+        },
+        error: (err) => console.error('Update failed', err),
+      });
+    } else {
+      this.dashboardService.addDashboard(dashboardPayload).subscribe({
+        next: () => {
+          console.log('Interactive Dashboard created');
+          this.dashboardClose.emit();
+        },
+        error: (err) => console.error('Create failed', err),
+      });
+    }
+  }
+}
+
+
+blank html 
+<div class="modal" *ngIf="showModal">
+  <div class="modal-content" [class.fullscreen]="isFullscreen">
+    <div class="modal-header">
+      <h2>{{ isEditMode ? 'Edit Blank Dashboard' : 'New Blank Dashboard' }}</h2>
+      <button mat-icon-button (click)="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <h3>Step {{ currentStep + 1 }}: {{ steps[currentStep] }}</h3>
+
+      <div *ngIf="currentStep === 0">
+        <label>Name:</label>
+        <input type="text" [(ngModel)]="formData.name" required />
+
+        <label>Description:</label>
+        <textarea [(ngModel)]="formData.description"></textarea>
+
+        <label>
+          <input type="checkbox" [(ngModel)]="formData.isPublic" />
+          Public
+        </label>
+      </div>
+
+      <div *ngIf="currentStep === 1">
+        <label>Model:</label>
+        <select [(ngModel)]="model">
+          <option *ngFor="let option of modelOptions" [value]="option">{{ option }}</option>
+        </select>
+
+        <label>Group By:</label>
+        <select [(ngModel)]="groupBy">
+          <option *ngFor="let option of groupByOptions" [value]="option">{{ option }}</option>
+        </select>
+
+        <label>Aggregation:</label>
+        <select [(ngModel)]="aggregation">
+          <option *ngFor="let type of aggregationTypes" [value]="type">{{ type }}</option>
+        </select>
+
+        <label>Aggregation Field:</label>
+        <select [(ngModel)]="aggregationField">
+          <option *ngFor="let field of aggregationFields" [value]="field">{{ field }}</option>
+        </select>
+      </div>
+
+      <div *ngIf="currentStep === 2">
+        <div class="chart-selector">
+          <img [src]="barChartUrl" alt="Bar Chart" (click)="setChartType('bar')" />
+          <img [src]="pieChartUrl" alt="Pie Chart" (click)="setChartType('pie')" />
+        </div>
+        <p>Selected Chart: {{ selectedChart }}</p>
+      </div>
+
+      <div *ngIf="currentStep === 3">
+        <p><strong>Name:</strong> {{ formData.name }}</p>
+        <p><strong>Description:</strong> {{ formData.description }}</p>
+        <p><strong>Chart Type:</strong> {{ selectedChart }}</p>
+        <p><strong>Model:</strong> {{ model }}</p>
+        <p><strong>Group By:</strong> {{ groupBy }}</p>
+        <p><strong>Aggregation:</strong> {{ aggregation }}</p>
+        <p><strong>Field:</strong> {{ aggregationField }}</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button (click)="prevStep()" [disabled]="currentStep === 0">Back</button>
+      <button *ngIf="currentStep < steps.length - 1" (click)="nextStep()">Next</button>
+      <button *ngIf="currentStep === steps.length - 1" (click)="submitDashboard()">
+        {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+interactive html
+<div class="modal" *ngIf="showModal">
+  <div class="modal-content" [class.fullscreen]="isFullscreen">
+    <div class="modal-header">
+      <h2>{{ isEditMode ? 'Edit Interactive Dashboard' : 'New Interactive Dashboard' }}</h2>
+      <button mat-icon-button (click)="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <h3>Step {{ currentStep + 1 }}: {{ steps[currentStep] }}</h3>
+
+      <div *ngIf="currentStep === 0">
+        <label>Name:</label>
+        <input type="text" [(ngModel)]="formData.name" required />
+
+        <label>Description:</label>
+        <textarea [(ngModel)]="formData.description"></textarea>
+
+        <label>
+          <input type="checkbox" [(ngModel)]="formData.isPublic" />
+          Public
+        </label>
+      </div>
+
+      <div *ngIf="currentStep === 1">
+        <label>Model:</label>
+        <input type="text" [(ngModel)]="model" />
+
+        <label>Group By:</label>
+        <input type="text" [(ngModel)]="groupBy" />
+
+        <label>Aggregation:</label>
+        <input type="text" [(ngModel)]="aggregation" />
+
+        <label>Aggregation Field:</label>
+        <input type="text" [(ngModel)]="aggregationField" />
+
+        <label>Column Field:</label>
+        <input type="text" [(ngModel)]="columnField" />
+
+        <div class="template-section">
+          <p>Select Templates:</p>
+          <div class="template-options">
+            <img [src]="barChartUrl" alt="Bar Chart" (click)="toggleTemplate('BarChart')" />
+            <img [src]="pieChartUrl" alt="Pie Chart" (click)="toggleTemplate('PieChart')" />
+          </div>
+          <div class="selected-templates">
+            <span *ngFor="let template of selectedTemplates">
+              {{ template }}
+              <button (click)="removeTemplate(template)">✕</button>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="currentStep === 2">
+        <p><strong>Name:</strong> {{ formData.name }}</p>
+        <p><strong>Description:</strong> {{ formData.description }}</p>
+        <p><strong>Selected Chart:</strong> {{ selectedChart }}</p>
+        <p><strong>Templates:</strong> {{ selectedTemplates.join(', ') }}</p>
+        <p><strong>Model:</strong> {{ model }}</p>
+        <p><strong>Group By:</strong> {{ groupBy }}</p>
+        <p><strong>Aggregation:</strong> {{ aggregation }}</p>
+        <p><strong>Field:</strong> {{ aggregationField }}</p>
+        <p><strong>Column Field:</strong> {{ columnField }}</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button (click)="prevStep()" [disabled]="currentStep === 0">Back</button>
+      <button *ngIf="currentStep < steps.length - 1" (click)="nextStep()">Next</button>
+      <button *ngIf="currentStep === steps.length - 1" (click)="submitDashboard()">
+        {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </div>
+</div>
