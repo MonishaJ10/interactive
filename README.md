@@ -19,8 +19,23 @@ typeIconCellRenderer(params: any): HTMLElement {
 
 
 
+const uid = sessionStorage.getItem('uid') || 'unknown';  // fallback if uid not found
 
-
+const dashboardPayload: Dashboardd = {
+  name: this.formData.name,
+  description: this.formData.description,
+  isPublic: this.formData.isPublic,
+  chartType: this.selectedChart,
+  model: this.model,
+  groupBy: this.groupBy,
+  aggregation: this.aggregation,
+  aggregationField: this.aggregationField,
+  createdBy: this.editData?.createdBy ?? uid,
+  createdDate: this.editData?.createdDate ?? new Date().toISOString(),
+  modifiedBy: this.isEditMode ? uid : undefined,
+  modifiedDate: new Date().toISOString(),
+  type: 'blank',
+};
 
 
 
