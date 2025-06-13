@@ -1,3 +1,37 @@
+typeIconCellRenderer(params: any): HTMLElement {
+  const div = this.renderer.createElement('div');
+  const iconButton = this.renderer.createElement('button');
+  const icon = this.renderer.createElement('span');
+
+  this.renderer.addClass(iconButton, 'mat-icon-button');
+  this.renderer.addClass(icon, 'material-icons'); // <-- Use material-icons class
+
+  const iconType = params.data.type === 'blank' ? 'speed' : 'analytics';
+  this.renderer.appendChild(icon, this.renderer.createText(iconType));
+
+  this.renderer.appendChild(iconButton, icon);
+  this.renderer.appendChild(div, iconButton);
+  return div;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
