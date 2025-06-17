@@ -1,3 +1,40 @@
+onDashboardNameClicked(dashboard: Dashboardd): void {
+  this.selectedDashboardForView = dashboard;
+
+  const { model, groupBy, aggregation, aggregationField, chartType, name } = dashboard;
+
+  if (chartType === 'BarChart') {
+    this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField)
+      .subscribe(data => {
+        this.chartOptions = {
+          series: [{ name: aggregation, data: data.map(item => item.value) }],
+          chart: { type: 'bar', height: 350 },
+          xaxis: { categories: data.map(item => item.label) },
+          title: { text: name }
+        };
+      });
+  } else if (chartType === 'PieChart') {
+    this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField)
+      .subscribe(data => {
+        this.chartOptions = {
+          series: data.map(item => item.value),
+          chart: { type: 'pie', height: 350 },
+          labels: data.map(item => item.label),
+          title: { text: name }
+        };
+      });
+  }
+}
+
+
+
+
+
+
+
+
+
+
 controller
 package com.example.recon_connect.controller;
 
