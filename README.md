@@ -1,159 +1,147 @@
 import {
   Component,
+  EventEmitter,
   OnInit,
-  ChangeDetectorRef,
+  Output,
   Renderer2,
-  ViewChild,
   ElementRef,
+  ChangeDetectorRef,
+  CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgIf } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { AgChartsAngular } from 'ag-charts-angular';
-import { AgGridAngular } from 'ag-grid-angular';
-import { GridOptions } from 'ag-grid-community';
-import { DashboardService } from '../dashboard.service';
-import { Dashboardd } from '../dashboard.model';
-import { BlankDashboardComponent } from '../blank-dashboard/blank-dashboard.component';
-import { InteractiveDashboardComponent } from '../interactive-dashboard/interactive-dashboard.component';
+import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
+import { ApexChartModule } from 'ng-apexcharts';
+import { AgGridModule } from 'ag-grid-angular';
+import { ColDef } from 'ag-grid-community';
+import { DashboardService } from './dashboard.service';
+import { Dashboardd } from './dashboard.model';
+import { BlankDashboardComponent } from './blank-dashboard/blank-dashboard.component';
+import { InteractiveDashboardComponent } from './interactive-dashboard/interactive-dashboard.component';
 
 @Component({
   selector: 'app-manage-dashboard',
   standalone: true,
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css'],
   imports: [
     CommonModule,
+    NgIf,
     MatIconModule,
     MatButtonModule,
-    AgChartsAngular,
-    AgGridAngular,
+    AgGridModule,
     BlankDashboardComponent,
     InteractiveDashboardComponent,
+    ApexChartModule,
   ],
-  templateUrl: './manage-dashboard.component.html',
-  styleUrl: './manage-dashboard.component.css',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ManageDashboardComponent implements OnInit {
   tableData: Dashboardd[] = [];
-  gridOptions: GridOptions = {};
-  selectedDashboard: Dashboardd | undefined;
-  selectedBlankDashboard: Dashboardd | undefined;
-  selectedInteractiveDashboard: Dashboardd | undefined;
+  selectedDashboard?: Dashboardd;
   showBlankDashboard = false;
   showInteractiveDashboard = false;
-  showChartPopup = false;
-  barChartOptions: any;
-  pieChartOptions: any;
+  selectedBlankDashboard?: Dashboardd;
+  selectedInteractiveDashboard?: Dashboardd;
+
+  // Apex chart variables
+  selectedDashboardForView?: Dashboardd;
+  barChartOptions: any = {};
+  pieChartOptions: any = {};
+
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
+
+  columnDefs: ColDef[] = [
+    {
+      headerName: 'Type Icon',
+      cellRenderer: this.typeIconCellRenderer.bind(this),
+      width: 50,
+    },
+    {
+      field: 'name',
+      headerName: 'Name',
+      cellRenderer: this.nameCellRenderer.bind(this),
+    },
+    { field: 'description', headerName: 'Description' },
+    { field: 'createdBy', headerName: 'Created By' },
+    {
+      field: 'createdDate',
+      headerName: 'Created Date',
+      valueFormatter: this.dateFormatter,
+    },
+    {
+      field: 'modifiedBy',
+      headerName: 'Modified By',
+    },
+    {
+      field: 'modifiedDate',
+      headerName: 'Modified Date',
+      valueFormatter: this.dateFormatter,
+    },
+    {
+      field: 'isPublic',
+      headerName: 'Public',
+      valueFormatter: this.booleanFormatter,
+    },
+    {
+      headerName: 'Actions',
+      cellRenderer: this.actionCellRenderer.bind(this),
+    },
+  ];
+
+  defaultColDef: ColDef = {
+    resizable: true,
+    sortable: true,
+    filter: true,
+    flex: 1,
+  };
+
+  gridOptions: any = {
+    columnDefs: this.columnDefs,
+    defaultColDef: this.defaultColDef,
+    rowData: this.tableData,
+    onGridReady: this.onGridReady.bind(this),
+    rowSelection: 'single',
+    pagination: true,
+    paginationPageSize: 10,
+    suppressRowClickSelection: true,
+    animateRows: true,
+  };
 
   constructor(
     private dashboardService: DashboardService,
     private renderer: Renderer2,
-    private changeDetectorRef: ChangeDetectorRef
+    private elementRef: ElementRef,
+    private changeDetectorRef: ChangeDetectorRef,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.loadDashboards();
-
-    this.gridOptions = {
-      columnDefs: [
-        {
-          headerName: 'Dashboard Name',
-          field: 'name',
-          cellRenderer: (params: any) => this.nameCellRenderer(params),
-        },
-        { headerName: 'Type', field: 'type' },
-        {
-          headerName: 'Actions',
-          cellRenderer: (params: any) => this.actionCellRenderer(params),
-        },
-      ],
-      rowHeight: 60,
-    };
   }
 
   loadDashboards(): void {
-    this.dashboardService.getAllDashboards().subscribe((dashboards) => {
-      this.tableData = dashboards;
-      this.changeDetectorRef.detectChanges();
+    this.dashboardService.getDashboards().subscribe({
+      next: (data: Dashboardd[]) => {
+        this.tableData = data;
+        this.gridOptions.api.setRowData(this.tableData);
+        this.changeDetectorRef.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading dashboards:', error);
+      },
     });
   }
 
-  nameCellRenderer(params: any): HTMLElement {
-    const link = this.renderer.createElement('a');
-    this.renderer.setStyle(link, 'cursor', 'pointer');
-    this.renderer.setStyle(link, 'color', 'blue');
-    this.renderer.setStyle(link, 'text-decoration', 'underline');
-    const text = this.renderer.createText(params.value);
-    this.renderer.appendChild(link, text);
-
-    this.renderer.listen(link, 'click', () => {
-      this.selectedDashboard = params.data;
-      this.loadChartData();
-      this.showChartPopup = true;
-      this.changeDetectorRef.detectChanges();
-    });
-
-    return link;
+  dateFormatter(params: any): string {
+    return new Date(params.value).toLocaleDateString();
   }
 
-  loadChartData(): void {
-    if (!this.selectedDashboard) return;
-
-    const data = this.selectedDashboard.chartData || [];
-
-    if (this.selectedDashboard.chartType === 'bar') {
-      this.barChartOptions = {
-        title: {
-          text: 'Bar Chart',
-        },
-        data: data,
-        series: [
-          {
-            type: 'bar',
-            xKey: 'label',
-            yKey: 'value',
-            fill: '#2196f3',
-          },
-        ],
-      };
-    } else if (this.selectedDashboard.chartType === 'pie') {
-      this.pieChartOptions = {
-        title: {
-          text: 'Pie Chart',
-        },
-        data: data,
-        series: [
-          {
-            type: 'pie',
-            angleKey: 'value',
-            labelKey: 'label',
-          },
-        ],
-      };
-    }
-  }
-
-  actionCellRenderer(params: any): HTMLElement {
-    const container = this.renderer.createElement('div');
-
-    const editIcon = this.renderer.createElement('mat-icon');
-    editIcon.textContent = 'edit';
-    this.renderer.setStyle(editIcon, 'cursor', 'pointer');
-    this.renderer.setStyle(editIcon, 'margin-right', '10px');
-
-    const deleteIcon = this.renderer.createElement('mat-icon');
-    deleteIcon.textContent = 'delete';
-    this.renderer.setStyle(deleteIcon, 'cursor', 'pointer');
-
-    this.renderer.listen(editIcon, 'click', () =>
-      this.onEditClicked(params.data)
-    );
-    this.renderer.listen(deleteIcon, 'click', () =>
-      this.onDeleteClicked(params.data)
-    );
-
-    this.renderer.appendChild(container, editIcon);
-    this.renderer.appendChild(container, deleteIcon);
-    return container;
+  booleanFormatter(params: any): string {
+    return params.value ? 'Yes' : 'No';
   }
 
   onEditClicked(dashboard: Dashboardd): void {
@@ -173,32 +161,209 @@ export class ManageDashboardComponent implements OnInit {
     this.changeDetectorRef.detectChanges();
   }
 
-  onDeleteClicked(dashboard: Dashboardd): void {
-    if (!dashboard.id) return;
-
-    this.dashboardService.deleteDashboard(dashboard.id).subscribe(() => {
-      this.loadDashboards();
+  onDeleteClicked(data: any): void {
+    this.dashboardService.deleteDashboard(data.id).subscribe({
+      next: () => {
+        this.showSnackBar('Dashboard deleted successfully');
+        this.loadDashboards();
+      },
+      error: (err) => console.error('Error deleting dashboard:', err),
     });
   }
 
-  closeBlankDashboard(): void {
+  onDashboardCreated(): void {
+    this.showSnackBar('Dashboard created successfully');
+    this.loadDashboards();
+    this.onBackToManage();
+  }
+
+  onDashboardUpdated(): void {
+    this.showSnackBar('Dashboard updated successfully');
+    this.loadDashboards();
+  }
+
+  onBackToManage(): void {
     this.showBlankDashboard = false;
-    this.selectedBlankDashboard = undefined;
-    this.loadDashboards();
-  }
-
-  closeInteractiveDashboard(): void {
     this.showInteractiveDashboard = false;
+    this.selectedBlankDashboard = undefined;
     this.selectedInteractiveDashboard = undefined;
-    this.loadDashboards();
-  }
-
-  closeChartPopup(): void {
-    this.showChartPopup = false;
-    this.selectedDashboard = undefined;
+    this.selectedDashboardForView = undefined;
     this.changeDetectorRef.detectChanges();
   }
+
+  onClose(): void {
+    this.onBackToManage();
+    this.closeDashboard.emit();
+  }
+
+  actionCellRenderer(params: any): HTMLElement {
+    const div = this.renderer.createElement('div');
+    const editButton = this.renderer.createElement('button');
+    const deleteButton = this.renderer.createElement('button');
+    this.renderer.addClass(editButton, 'mat-icon-button');
+    this.renderer.addClass(deleteButton, 'mat-icon-button');
+
+    const editIcon = this.renderer.createElement('mat-icon');
+    const deleteIcon = this.renderer.createElement('mat-icon');
+    this.renderer.appendChild(editIcon, this.renderer.createText('edit'));
+    this.renderer.appendChild(deleteIcon, this.renderer.createText('delete'));
+
+    this.renderer.appendChild(editButton, editIcon);
+    this.renderer.appendChild(deleteButton, deleteIcon);
+    this.renderer.appendChild(div, editButton);
+    this.renderer.appendChild(div, deleteButton);
+
+    this.renderer.listen(editButton, 'click', () => {
+      this.onEditClicked(params.data);
+    });
+    this.renderer.listen(deleteButton, 'click', () => {
+      this.onDeleteClicked(params.data);
+    });
+
+    return div;
+  }
+
+  typeIconCellRenderer(params: any): HTMLElement {
+    const div = this.renderer.createElement('div');
+    const icon = this.renderer.createElement('span');
+    this.renderer.addClass(icon, 'material-icons');
+    const iconType = params.data.type === 'blank' ? 'speed' : 'analytics';
+    this.renderer.appendChild(icon, this.renderer.createText(iconType));
+    this.renderer.appendChild(div, icon);
+    return div;
+  }
+
+  nameCellRenderer(params: any): HTMLElement {
+    const div = this.renderer.createElement('div');
+    const link = this.renderer.createElement('a');
+    this.renderer.setStyle(link, 'cursor', 'pointer');
+    this.renderer.setStyle(link, 'color', '#007bff');
+    this.renderer.setStyle(link, 'textDecoration', 'underline');
+    this.renderer.appendChild(link, this.renderer.createText(params.value));
+    this.renderer.listen(link, 'click', () => {
+      this.onDashboardNameClicked(params.data);
+    });
+    this.renderer.appendChild(div, link);
+    return div;
+  }
+
+  onDashboardNameClicked(dashboard: Dashboardd): void {
+    this.selectedDashboardForView = dashboard;
+
+    if (dashboard.chartType === 'bar') {
+      this.dashboardService
+        .getBarChartData(dashboard.model, dashboard.groupBy, dashboard.aggregation, dashboard.aggregationField)
+        .subscribe({
+          next: (data) => {
+            this.barChartOptions = {
+              chart: {
+                type: 'bar',
+              },
+              series: [
+                {
+                  name: 'Value',
+                  data: data.map((item: any) => item.value),
+                },
+              ],
+              xaxis: {
+                categories: data.map((item: any) => item.category),
+              },
+            };
+            this.changeDetectorRef.detectChanges();
+          },
+        });
+    } else if (dashboard.chartType === 'pie') {
+      this.dashboardService
+        .getPieChartData(dashboard.model, dashboard.groupBy, dashboard.aggregation, dashboard.aggregationField)
+        .subscribe({
+          next: (data) => {
+            this.pieChartOptions = {
+              chart: {
+                type: 'pie',
+              },
+              labels: data.map((item: any) => item.category),
+              series: data.map((item: any) => item.value),
+            };
+            this.changeDetectorRef.detectChanges();
+          },
+        });
+    }
+  }
+
+  closeChartViewer(): void {
+    this.selectedDashboardForView = undefined;
+    this.changeDetectorRef.detectChanges();
+  }
+
+  showSnackBar(message: string): void {
+    const config = new MatSnackBarConfig();
+    config.horizontalPosition = 'center';
+    config.verticalPosition = 'bottom';
+    config.panelClass = ['custom-snackbar'];
+    config.duration = 3000;
+    this.snackBar.open(message, 'close', config);
+  }
+
+  onGridReady(params: any): void {
+    params.api.sizeColumnsToFit();
+  }
 }
+
+
+<!-- Chart Viewer Popup -->
+<div *ngIf="selectedDashboardForView" class="chart-popup-backdrop">
+  <div class="chart-popup">
+    <h2>{{ selectedDashboardForView.name }} ({{ selectedDashboardForView.chartType | titlecase }} Chart)</h2>
+
+    <apx-chart
+      *ngIf="selectedDashboardForView.chartType === 'bar'"
+      [series]="barChartOptions.series"
+      [chart]="barChartOptions.chart"
+      [xaxis]="barChartOptions.xaxis"
+    ></apx-chart>
+
+    <apx-chart
+      *ngIf="selectedDashboardForView.chartType === 'pie'"
+      [series]="pieChartOptions.series"
+      [chart]="pieChartOptions.chart"
+      [labels]="pieChartOptions.labels"
+    ></apx-chart>
+
+    <button mat-button color="warn" (click)="closeChartViewer()">Close</button>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 html
 <div class="manage-dashboard-container">
@@ -253,34 +418,7 @@ css
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-
-.title {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-.table-container {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Chart Popup Styles */
-.chart-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 80%;
-  max-width: 800px;
-  height: auto;
-  max-height: 90%;
-  overflow-y: auto;
-  transform: translate(-50%, -50%);
-  background-color: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0,
+,
 
 
 
