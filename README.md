@@ -1,3 +1,148 @@
+import { Component, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgApexchartsModule } from 'ng-apexcharts';
+import { DashboardService } from '../dashboard.service';
+import { ApexChart, ApexAxisChartSeries, ApexXAxis, ApexNonAxisChartSeries } from 'ng-apexcharts';
+
+@Component({
+  selector: 'app-chart-viewer',
+  standalone: true,
+  imports: [CommonModule, NgApexchartsModule],
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: any;
+  @Output() close = new EventEmitter<void>();
+
+  barChartOptions: {
+    series: ApexAxisChartSeries;
+    chart: ApexChart;
+    xaxis: ApexXAxis;
+  } = {
+    series: [],
+    chart: { type: 'bar', height: 350 },
+    xaxis: { categories: [] }
+  };
+
+  pieChartOptions: {
+    series: ApexNonAxisChartSeries;
+    chart: ApexChart;
+    labels: string[];
+  } = {
+    series: [],
+    chart: { type: 'pie', height: 350 },
+    labels: []
+  };
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    const { model, groupBy, aggregation, aggregationField, chartType } = this.dashboard;
+
+    if (chartType === 'bar') {
+      this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField).subscribe(data => {
+        this.barChartOptions = {
+          series: [{ name: aggregation, data: data.values }],
+          chart: { type: 'bar', height: 350 },
+          xaxis: { categories: data.labels }
+        };
+      });
+    } else if (chartType === 'pie') {
+      this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField).subscribe(data => {
+        this.pieChartOptions = {
+          series: data.values,
+          chart: { type: 'pie', height: 350 },
+          labels: data.labels
+        };
+      });
+    }
+  }
+
+  closeViewer(): void {
+    this.close.emit();
+  }
+}
+
+
+<div class="chart-popup-backdrop">
+  <div class="chart-popup">
+    <h2>{{ dashboard?.title }} ({{ dashboard?.chartType | titlecase }} Chart)</h2>
+
+    <apx-chart
+      *ngIf="dashboard?.chartType === 'bar'"
+      [series]="barChartOptions.series"
+      [chart]="barChartOptions.chart"
+      [xaxis]="barChartOptions.xaxis">
+    </apx-chart>
+
+    <apx-chart
+      *ngIf="dashboard?.chartType === 'pie'"
+      [series]="pieChartOptions.series"
+      [chart]="pieChartOptions.chart"
+      [labels]="pieChartOptions.labels">
+    </apx-chart>
+
+    <button mat-button color="warn" (click)="closeViewer()">Close</button>
+  </div>
+</div>
+
+
+<app-chart-viewer
+  *ngIf="selectedDashboardForView"
+  [dashboard]="selectedDashboardForView"
+  (close)="selectedDashboardForView = null">
+</app-chart-viewer>
+
+.chart-popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100dvw;
+  height: 100dvh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.chart-popup {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 800px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Step 7: Show Chart Viewer in HTML
 
 In manage-dashboard.component.html, add this:
