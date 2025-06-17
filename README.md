@@ -1,3 +1,122 @@
+<div class="manage-dashboard-container" style="width: 90vw; overflow-x: auto;">
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title">Manage Dashboard</h1>
+    <button class="close-btn" (click)="onClose()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- New Dashboard Buttons -->
+  <div class="new-dashboard-section">
+    <div class="dashboard-types">
+      <div class="dashboard-card" (click)="toggleBlankDashboard()">
+        <mat-icon class="dashboard-icon">speed</mat-icon>
+        <div class="dashboard-name">Blank Dashboard</div>
+      </div>
+      <div class="dashboard-card" (click)="toggleInteractiveDashboard()">
+        <mat-icon class="dashboard-icon">analytics</mat-icon>
+        <div class="dashboard-name">Interactive Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Dashboards Table -->
+  <div class="all-dashboards-section">
+    <h2 class="section-title">All Dashboards</h2>
+    <div class="table-container">
+      <ag-grid-angular
+        class="ag-theme-balham"
+        style="width: 100%; height: 500px;"
+        [gridOptions]="gridOptions"
+        [rowData]="tableData"
+        (gridReady)="onGridReady($event)">
+      </ag-grid-angular>
+    </div>
+  </div>
+
+  <!-- Chart Viewer Popup -->
+  <div *ngIf="selectedDashboardForView" class="chart-popup-backdrop">
+    <div class="chart-popup">
+      <h2>{{ selectedDashboardForView.name }} ({{ selectedDashboardForView.chartType | titlecase }} Chart)</h2>
+
+      <apx-chart
+        *ngIf="selectedDashboardForView.chartType === 'bar'"
+        [series]="barChartOptions.series"
+        [chart]="barChartOptions.chart"
+        [xaxis]="barChartOptions.xaxis">
+      </apx-chart>
+
+      <apx-chart
+        *ngIf="selectedDashboardForView.chartType === 'pie'"
+        [series]="pieChartOptions.series"
+        [chart]="pieChartOptions.chart"
+        [labels]="pieChartOptions.labels">
+      </apx-chart>
+
+      <button mat-button color="warn" (click)="closeChartViewer()">Close</button>
+    </div>
+  </div>
+
+  <!-- Blank Dashboard Modal -->
+  <app-blank-dashboard
+    *ngIf="showBlankDashboard"
+    [editData]="selectedBlankDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()"
+    (dashboardUpdated)="onDashboardUpdated()">
+  </app-blank-dashboard>
+
+  <!-- Interactive Dashboard Modal -->
+  <app-interactive-dashboard
+    *ngIf="showInteractiveDashboard"
+    [editData]="selectedInteractiveDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()"
+    (dashboardUpdated)="onDashboardUpdated()">
+  </app-interactive-dashboard>
+</div>
+
+.chart-popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.chart-popup {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 700px;
+  width: 90%;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import {
   Component,
   EventEmitter,
