@@ -1,3 +1,172 @@
+Step 3: Create <app-chart-viewer> Component
+
+Run this command to generate it:
+
+ng generate component chart-viewer --standalone
+
+
+---
+
+🔹 Step 4: Implement chart-viewer.component.ts
+
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../models/dashboard.model';
+import {
+  ApexNonAxisChartSeries,
+  ApexChart,
+  ApexXAxis,
+  ApexDataLabels,
+  ApexTitleSubtitle,
+  ApexResponsive
+} from 'ng-apexcharts';
+
+export type ChartOptions = {
+  series: ApexNonAxisChartSeries;
+  chart: ApexChart;
+  labels?: any;
+  xaxis?: ApexXAxis;
+  dataLabels?: ApexDataLabels;
+  title?: ApexTitleSubtitle;
+  responsive?: ApexResponsive[];
+};
+
+@Component({
+  selector: 'app-chart-viewer',
+  templateUrl: './chart-viewer.component.html',
+  standalone: true,
+  styleUrls: ['./chart-viewer.component.css'],
+  imports: [],
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard!: Dashboardd;
+  chartOptions!: Partial<ChartOptions>;
+  chartType: 'bar' | 'pie' = 'bar';
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      this.loadChart();
+    }
+  }
+
+  loadChart(): void {
+    if (this.dashboard.chartType === 'PieChart') {
+      this.chartType = 'pie';
+      this.dashboardService.getPieChartData(this.dashboard).subscribe((data) => {
+        this.chartOptions = {
+          series: data.map((item: any) => item.value),
+          chart: {
+            type: 'pie',
+            width: 380,
+          },
+          labels: data.map((item: any) => item.label),
+        };
+      });
+    } else {
+      this.chartType = 'bar';
+      this.dashboardService.getBarchartData(this.dashboard).subscribe((data) => {
+        this.chartOptions = {
+          series: [{
+            name: 'Value',
+            data: data.map((item: any) => item.value),
+          }],
+          chart: {
+            type: 'bar',
+            height: 350,
+          },
+          xaxis: {
+            categories: data.map((item: any) => item.label),
+          },
+        };
+      });
+    }
+  }
+}
+
+
+---
+
+🔹 Step 5: chart-viewer.component.html
+
+<div class="chart-modal">
+  <div class="chart-popup">
+    <button class="close-btn" (click)="dashboard = null">X</button>
+
+    <apx-chart
+      *ngIf="chartOptions"
+      [series]="chartOptions.series"
+      [chart]="chartOptions.chart"
+      [labels]="chartOptions.labels"
+      [xaxis]="chartOptions.xaxis"
+      [dataLabels]="chartOptions.dataLabels"
+      [title]="chartOptions.title"
+      [responsive]="chartOptions.responsive"
+    ></apx-chart>
+  </div>
+</div>
+
+
+---
+
+🔹 Step 6: chart-viewer.component.css
+
+.chart-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100dvw;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-popup {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 600px;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="manage-dashboard-container" style="width: 90vw; overflow-x: auto;">
   <!-- Header -->
   <div class="header">
