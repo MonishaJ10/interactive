@@ -1,3 +1,37 @@
+<!-- src/app/components/chart-viewer/chart-viewer.component.html -->
+<apx-chart
+  *ngIf="chartOptions"
+  [series]="chartOptions.series"
+  [chart]="chartOptions.chart"
+  [xaxis]="chartOptions.xaxis"
+  [labels]="chartOptions.labels"
+  [title]="chartOptions.title">
+</apx-chart>
+
+<!-- Chart Popup -->
+<div *ngIf="selectedDashboardForView" class="popup-backdrop">
+  <div class="popup-chart">
+    <button class="close-btn" (click)="selectedDashboardForView = null">
+      <mat-icon>close</mat-icon>
+    </button>
+
+    <app-chart-viewer [dashboard]="selectedDashboardForView"></app-chart-viewer>
+  </div>
+</div>
+
+
+onDashboardNameClicked(dashboard: Dashboardd): void {
+  this.selectedDashboardForView = dashboard;
+}
+
+
+
+
+
+
+
+
+
 // src/app/components/chart-viewer/chart-viewer.component.ts
 import { Component, Input, OnChanges } from '@angular/core';
 import { DashboardService } from '../services/dashboard.service';
