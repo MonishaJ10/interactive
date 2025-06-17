@@ -1,3 +1,53 @@
+// src/app/components/chart-viewer/chart-viewer.component.ts
+import { Component, Input, OnChanges } from '@angular/core';
+import { DashboardService } from '../services/dashboard.service';
+import { Dashboardd } from '../models/dashboard.model';
+
+@Component({
+  selector: 'app-chart-viewer',
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.scss']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard!: Dashboardd;
+  chartOptions: any;
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(): void {
+    if (this.dashboard) {
+      const { model, groupBy, aggregation, aggregationField, chartType, name } = this.dashboard;
+
+      if (chartType === 'BarChart') {
+        this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField)
+          .subscribe(data => {
+            this.chartOptions = {
+              series: [{ name: aggregation, data: data.map(item => item.value) }],
+              chart: { type: 'bar', height: 350 },
+              xaxis: { categories: data.map(item => item.label) },
+              title: { text: name }
+            };
+          });
+      } else if (chartType === 'PieChart') {
+        this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField)
+          .subscribe(data => {
+            this.chartOptions = {
+              series: data.map(item => item.value),
+              chart: { type: 'pie', height: 350 },
+              labels: data.map(item => item.label),
+              title: { text: name }
+            };
+          });
+      }
+    }
+  }
+}
+
+
+
+
+
+
 onDashboardNameClicked(dashboard: Dashboardd): void {
   this.selectedDashboardForView = dashboard;
 
