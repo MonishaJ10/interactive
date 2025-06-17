@@ -1,3 +1,67 @@
+import { Component, Input, OnChanges } from '@angular/core';
+import { ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle, ApexNonAxisChartSeries } from 'ng-apexcharts';
+import { Dashboardd } from '../models/dashboard.model'; // adjust path if needed
+import { DashboardService } from '../services/dashboard.service';
+
+@Component({
+  selector: 'app-chart-viewer',
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+
+  chartOptions: {
+    series?: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart?: ApexChart;
+    xaxis?: ApexXAxis;
+    title?: ApexTitleSubtitle;
+    labels?: string[];
+  } = {};
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(): void {
+    if (this.dashboard) {
+      console.log('Chart Viewer Input:', this.dashboard);
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    if (this.dashboard?.chartType === 'BarChart') {
+      this.dashboardService.getBarChartData(this.dashboard.id).subscribe(data => {
+        this.chartOptions = {
+          series: [{ name: 'Value', data: data.values }],
+          chart: { type: 'bar', height: 350 },
+          xaxis: { categories: data.categories },
+          title: { text: this.dashboard?.name || 'Bar Chart' }
+        };
+      });
+    } else if (this.dashboard?.chartType === 'PieChart') {
+      this.dashboardService.getPieChartData(this.dashboard.id).subscribe(data => {
+        this.chartOptions = {
+          series: data.values,
+          chart: { type: 'pie', height: 350 },
+          labels: data.categories,
+          title: { text: this.dashboard?.name || 'Pie Chart' }
+        };
+      });
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- src/app/components/chart-viewer/chart-viewer.component.html -->
 <apx-chart
   *ngIf="chartOptions"
