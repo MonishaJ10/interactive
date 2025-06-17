@@ -1,3 +1,330 @@
+import {
+  Component,
+  OnInit,
+  ChangeDetectorRef,
+  Renderer2,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { AgChartsAngular } from 'ag-charts-angular';
+import { AgGridAngular } from 'ag-grid-angular';
+import { GridOptions } from 'ag-grid-community';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+import { BlankDashboardComponent } from '../blank-dashboard/blank-dashboard.component';
+import { InteractiveDashboardComponent } from '../interactive-dashboard/interactive-dashboard.component';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    AgChartsAngular,
+    AgGridAngular,
+    BlankDashboardComponent,
+    InteractiveDashboardComponent,
+  ],
+  templateUrl: './manage-dashboard.component.html',
+  styleUrl: './manage-dashboard.component.css',
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+  gridOptions: GridOptions = {};
+  selectedDashboard: Dashboardd | undefined;
+  selectedBlankDashboard: Dashboardd | undefined;
+  selectedInteractiveDashboard: Dashboardd | undefined;
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+  showChartPopup = false;
+  barChartOptions: any;
+  pieChartOptions: any;
+
+  constructor(
+    private dashboardService: DashboardService,
+    private renderer: Renderer2,
+    private changeDetectorRef: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+
+    this.gridOptions = {
+      columnDefs: [
+        {
+          headerName: 'Dashboard Name',
+          field: 'name',
+          cellRenderer: (params: any) => this.nameCellRenderer(params),
+        },
+        { headerName: 'Type', field: 'type' },
+        {
+          headerName: 'Actions',
+          cellRenderer: (params: any) => this.actionCellRenderer(params),
+        },
+      ],
+      rowHeight: 60,
+    };
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getAllDashboards().subscribe((dashboards) => {
+      this.tableData = dashboards;
+      this.changeDetectorRef.detectChanges();
+    });
+  }
+
+  nameCellRenderer(params: any): HTMLElement {
+    const link = this.renderer.createElement('a');
+    this.renderer.setStyle(link, 'cursor', 'pointer');
+    this.renderer.setStyle(link, 'color', 'blue');
+    this.renderer.setStyle(link, 'text-decoration', 'underline');
+    const text = this.renderer.createText(params.value);
+    this.renderer.appendChild(link, text);
+
+    this.renderer.listen(link, 'click', () => {
+      this.selectedDashboard = params.data;
+      this.loadChartData();
+      this.showChartPopup = true;
+      this.changeDetectorRef.detectChanges();
+    });
+
+    return link;
+  }
+
+  loadChartData(): void {
+    if (!this.selectedDashboard) return;
+
+    const data = this.selectedDashboard.chartData || [];
+
+    if (this.selectedDashboard.chartType === 'bar') {
+      this.barChartOptions = {
+        title: {
+          text: 'Bar Chart',
+        },
+        data: data,
+        series: [
+          {
+            type: 'bar',
+            xKey: 'label',
+            yKey: 'value',
+            fill: '#2196f3',
+          },
+        ],
+      };
+    } else if (this.selectedDashboard.chartType === 'pie') {
+      this.pieChartOptions = {
+        title: {
+          text: 'Pie Chart',
+        },
+        data: data,
+        series: [
+          {
+            type: 'pie',
+            angleKey: 'value',
+            labelKey: 'label',
+          },
+        ],
+      };
+    }
+  }
+
+  actionCellRenderer(params: any): HTMLElement {
+    const container = this.renderer.createElement('div');
+
+    const editIcon = this.renderer.createElement('mat-icon');
+    editIcon.textContent = 'edit';
+    this.renderer.setStyle(editIcon, 'cursor', 'pointer');
+    this.renderer.setStyle(editIcon, 'margin-right', '10px');
+
+    const deleteIcon = this.renderer.createElement('mat-icon');
+    deleteIcon.textContent = 'delete';
+    this.renderer.setStyle(deleteIcon, 'cursor', 'pointer');
+
+    this.renderer.listen(editIcon, 'click', () =>
+      this.onEditClicked(params.data)
+    );
+    this.renderer.listen(deleteIcon, 'click', () =>
+      this.onDeleteClicked(params.data)
+    );
+
+    this.renderer.appendChild(container, editIcon);
+    this.renderer.appendChild(container, deleteIcon);
+    return container;
+  }
+
+  onEditClicked(dashboard: Dashboardd): void {
+    const isInteractive =
+      !!(dashboard.model || dashboard.groupBy || dashboard.aggregation || dashboard.aggregationField);
+
+    if (isInteractive) {
+      this.selectedInteractiveDashboard = dashboard;
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    } else {
+      this.selectedBlankDashboard = dashboard;
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    }
+
+    this.changeDetectorRef.detectChanges();
+  }
+
+  onDeleteClicked(dashboard: Dashboardd): void {
+    if (!dashboard.id) return;
+
+    this.dashboardService.deleteDashboard(dashboard.id).subscribe(() => {
+      this.loadDashboards();
+    });
+  }
+
+  closeBlankDashboard(): void {
+    this.showBlankDashboard = false;
+    this.selectedBlankDashboard = undefined;
+    this.loadDashboards();
+  }
+
+  closeInteractiveDashboard(): void {
+    this.showInteractiveDashboard = false;
+    this.selectedInteractiveDashboard = undefined;
+    this.loadDashboards();
+  }
+
+  closeChartPopup(): void {
+    this.showChartPopup = false;
+    this.selectedDashboard = undefined;
+    this.changeDetectorRef.detectChanges();
+  }
+}
+
+html
+<div class="manage-dashboard-container">
+  <h1 class="title">Manage Dashboards</h1>
+
+  <div class="table-container">
+    <ag-grid-angular
+      class="ag-theme-balham"
+      style="width: 100%; height: 500px;"
+      [gridOptions]="gridOptions"
+      [rowData]="tableData"
+    ></ag-grid-angular>
+  </div>
+
+  <!-- Chart Popup -->
+  <div *ngIf="showChartPopup" class="chart-popup">
+    <div class="chart-header">
+      <h2>{{ selectedDashboard?.name }} - {{ selectedDashboard?.chartType }} Chart</h2>
+      <button mat-icon-button (click)="closeChartPopup()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div *ngIf="selectedDashboard?.chartType === 'bar'">
+      <ag-charts-angular [options]="barChartOptions" style="height: 400px;"></ag-charts-angular>
+    </div>
+
+    <div *ngIf="selectedDashboard?.chartType === 'pie'">
+      <ag-charts-angular [options]="pieChartOptions" style="height: 400px;"></ag-charts-angular>
+    </div>
+  </div>
+
+  <!-- Blank Dashboard Modal -->
+  <app-blank-dashboard
+    *ngIf="showBlankDashboard"
+    [isEditMode]="true"
+    [editData]="selectedBlankDashboard"
+    (dashboardClose)="closeBlankDashboard()"
+  ></app-blank-dashboard>
+
+  <!-- Interactive Dashboard Modal -->
+  <app-interactive-dashboard
+    *ngIf="showInteractiveDashboard"
+    [isEditMode]="true"
+    [editData]="selectedInteractiveDashboard"
+    (dashboardClose)="closeInteractiveDashboard()"
+  ></app-interactive-dashboard>
+</div>
+
+css
+.manage-dashboard-container {
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.table-container {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Chart Popup Styles */
+.chart-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  max-width: 800px;
+  height: auto;
+  max-height: 90%;
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typeIconCellRenderer(params: any): HTMLElement {
   const div = this.renderer.createElement('div');
   const iconButton = this.renderer.createElement('button');
