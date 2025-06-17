@@ -1,3 +1,79 @@
+<div class="manage-dashboard-container" style="width: 90vw; overflow-x: auto;">
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title">Manage Dashboard</h1>
+    <button class="close-btn" (click)="onClose()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- New Dashboard Buttons -->
+  <div class="new-dashboard-section">
+    <div class="dashboard-types">
+      <div class="dashboard-card" (click)="toggleBlankDashboard()">
+        <mat-icon class="dashboard-icon">speed</mat-icon>
+        <div class="dashboard-name">Blank Dashboard</div>
+      </div>
+      <div class="dashboard-card" (click)="toggleInteractiveDashboard()">
+        <mat-icon class="dashboard-icon">analytics</mat-icon>
+        <div class="dashboard-name">Interactive Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Dashboards Table -->
+  <div class="all-dashboards-section" *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+    <h2 class="section-title">All Dashboards</h2>
+    <div class="table-container">
+      <ag-grid-angular
+        class="ag-theme-balham"
+        style="width: 100%; height: 500px;"
+        [gridOptions]="gridOptions"
+        [rowData]="tableData"
+        (gridReady)="onGridReady($event)">
+      </ag-grid-angular>
+    </div>
+  </div>
+
+  <!-- Chart Popup -->
+  <div *ngIf="selectedDashboardForView" class="popup-backdrop">
+    <div class="popup-chart">
+      <button class="close-btn" (click)="selectedDashboardForView = null">
+        <mat-icon>close</mat-icon>
+      </button>
+      <app-chart-viewer [dashboard]="selectedDashboardForView"></app-chart-viewer>
+    </div>
+  </div>
+
+  <!-- Blank Dashboard Modal -->
+  <app-blank-dashboard
+    *ngIf="showBlankDashboard"
+    [editData]="selectedBlankDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()"
+    (dashboardUpdated)="onDashboardUpdated()">
+  </app-blank-dashboard>
+
+  <!-- Interactive Dashboard Modal -->
+  <app-interactive-dashboard
+    *ngIf="showInteractiveDashboard"
+    [editData]="selectedInteractiveDashboard"
+    (dashboardClose)="onClose()"
+    (dashboardCreated)="onDashboardCreated()"
+    (dashboardUpdated)="onDashboardUpdated()">
+  </app-interactive-dashboard>
+</div>
+
+
+
+
+
+
+
+
+
+
+
 // manage-dashboard.component.ts
 
 import {
