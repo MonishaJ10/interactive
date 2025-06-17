@@ -1,3 +1,55 @@
+Step 7: Show Chart Viewer in HTML
+
+In manage-dashboard.component.html, add this:
+
+<app-chart-viewer
+  *ngIf="selectedDashboardForView"
+  [dashboard]="selectedDashboardForView"
+></app-chart-viewer>
+
+
+---
+
+🔹 Step 8: Update Your DashboardService
+
+Ensure these methods are in your service and return Observable<any[]>:
+
+getBarchartData(dashboard: Dashboardd): Observable<any[]> {
+  return this.http.post<any[]>(`/api/bar-data`, dashboard);
+}
+
+getPieChartData(dashboard: Dashboardd): Observable<any[]> {
+  return this.http.post<any[]>(`/api/pie-data`, dashboard);
+}
+
+Make sure your backend accepts the dashboard input and returns:
+
+[
+  { label: "Category A", value: 10 },
+  { label: "Category B", value: 20 }
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Step 3: Create <app-chart-viewer> Component
 
 Run this command to generate it:
