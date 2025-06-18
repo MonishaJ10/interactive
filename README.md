@@ -1,3 +1,97 @@
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+import {
+  ApexAxisChartSeries,
+  ApexChart,
+  ApexXAxis,
+  ApexTitleSubtitle,
+  ApexNonAxisChartSeries
+} from 'ng-apexcharts';
+
+@Component({
+  selector: 'app-chart-viewer',
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+
+  chartOptions: {
+    series?: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart?: ApexChart;
+    xaxis?: ApexXAxis;
+    title?: ApexTitleSubtitle;
+    labels?: string[];
+  } = {};
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      console.log('📊 Dashboard input changed:', this.dashboard);
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    if (!this.dashboard) return;
+
+    const { model, groupBy, aggregation, aggregationField, chartType } = this.dashboard;
+    console.log('📥 Fetching chart data for type:', chartType);
+
+    if (chartType === 'BarChart') {
+      this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField).subscribe({
+        next: (data) => {
+          console.log('✅ Bar chart data received:', data);
+          this.chartOptions = {
+            series: [{ name: 'Value', data: data.values }],
+            chart: { type: 'bar', height: 350 },
+            xaxis: { categories: data.categories },
+            title: { text: String(this.dashboard?.name || 'Bar Chart') }
+          };
+        },
+        error: (err) => console.error('❌ Error fetching bar chart data:', err)
+      });
+
+    } else if (chartType === 'PieChart') {
+      this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField).subscribe({
+        next: (data) => {
+          console.log('✅ Pie chart data received:', data);
+          this.chartOptions = {
+            series: data.values,
+            chart: { type: 'pie', height: 350 },
+            labels: data.categories,
+            title: { text: String(this.dashboard?.name || 'Pie Chart') }
+          };
+        },
+        error: (err) => console.error('❌ Error fetching pie chart data:', err)
+      });
+    } else {
+      console.warn('⚠️ Unknown chart type:', chartType);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="manage-dashboard-container" style="width: 90vw; overflow-x: auto;">
   <!-- Header -->
   <div class="header">
