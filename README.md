@@ -1,3 +1,121 @@
+import { Component, Input, OnChanges } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  ApexChart,
+  ApexNonAxisChartSeries,
+  ApexTitleSubtitle,
+  ApexAxisChartSeries,
+  ApexXAxis
+} from 'ng-apexcharts';
+import { NgApexchartsModule } from 'ng-apexcharts';
+import { Dashboardd } from '../dashboard.model';
+import { DashboardService } from '../dashboard.service';
+
+@Component({
+  selector: 'app-chart-viewer',
+  standalone: true,
+  imports: [CommonModule, NgApexchartsModule],
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+
+  chartOptions: any = {
+    series: [],
+    chart: {
+      type: 'bar',
+      height: 350
+    },
+    xaxis: {},
+    title: {
+      text: ''
+    },
+    labels: []
+  };
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(): void {
+    if (this.dashboard) {
+      const type = this.dashboard.chartType;
+      if (type === 'BarChart') {
+        this.loadBarChart();
+      } else if (type === 'PieChart') {
+        this.loadPieChart();
+      }
+    }
+  }
+
+  loadBarChart(): void {
+    const d = this.dashboard!;
+    this.dashboardService.getBarChartData(d.model, d.groupBy, d.aggregation, d.aggregationField).subscribe({
+      next: (data) => {
+        this.chartOptions = {
+          series: [{ name: 'Value', data: data.values }],
+          chart: { type: 'bar', height: 350 },
+          xaxis: { categories: data.categories },
+          title: { text: d.name || 'Bar Chart' }
+        };
+      }
+    });
+  }
+
+  loadPieChart(): void {
+    const d = this.dashboard!;
+    this.dashboardService.getPieChartData(d.model, d.groupBy, d.aggregation, d.aggregationField).subscribe({
+      next: (data) => {
+        this.chartOptions = {
+          series: data.values,
+          chart: { type: 'pie', height: 350 },
+          labels: data.categories,
+          title: { text: d.name || 'Pie Chart' }
+        };
+      }
+    });
+  }
+}
+
+<ng-template #noDashboard>
+  <p style="color: red">⚠️ No dashboard input received</p>
+</ng-template>
+
+<apx-chart
+  *ngIf="chartOptions.series && chartOptions.chart; else noDashboard"
+  [series]="chartOptions.series"
+  [chart]="chartOptions.chart"
+  [xaxis]="chartOptions.xaxis"
+  [title]="chartOptions.title"
+  [labels]="chartOptions.labels"
+>
+</apx-chart>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import {
   ApexChart,
