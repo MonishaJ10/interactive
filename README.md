@@ -1,3 +1,36 @@
+// ✅ FIXED ChartViewerComponent import { Component, Input, OnChanges } from '@angular/core'; import { CommonModule } from '@angular/common'; import { ApexChart, ApexAxisChartSeries, ApexNonAxisChartSeries, ApexTitleSubtitle, ApexXAxis, ApexOptions } from 'ng-apexcharts'; import { NgApexchartsModule } from 'ng-apexcharts'; import { Dashboardd } from '../dashboard.model'; import { DashboardService } from '../dashboard.service';
+
+@Component({ selector: 'app-chart-viewer', standalone: true, imports: [CommonModule, NgApexchartsModule], templateUrl: './chart-viewer.component.html', styleUrls: ['./chart-viewer.component.css'] }) export class ChartViewerComponent implements OnChanges { @Input() dashboard: Dashboardd | null = null;
+
+chartOptions: Partial<ApexOptions> = { series: [], chart: { type: 'bar', height: 350 }, xaxis: { categories: [] }, labels: [], title: { text: '' } };
+
+constructor(private dashboardService: DashboardService) {}
+
+ngOnChanges(): void { if (this.dashboard) { const type = this.dashboard.chartType; if (type === 'BarChart') { this.loadBarChart(); } else if (type === 'PieChart') { this.loadPieChart(); } } }
+
+loadBarChart(): void { const d = this.dashboard!; this.dashboardService .getBarChartData(d.model, d.groupBy, d.aggregation, d.aggregationField) .subscribe({ next: (data) => { this.chartOptions = { series: [{ name: 'Value', data: data.values }], chart: { type: 'bar', height: 350 }, xaxis: { categories: data.categories }, title: { text: d.name || 'Bar Chart' } }; }, error: (err) => console.error('Error loading bar chart:', err) }); }
+
+loadPieChart(): void { const d = this.dashboard!; this.dashboardService .getPieChartData(d.model, d.groupBy, d.aggregation, d.aggregationField) .subscribe({ next: (data) => { this.chartOptions = { series: data.values, chart: { type: 'pie', height: 350 }, labels: data.categories, title: { text: d.name || 'Pie Chart' } }; }, error: (err) => console.error('Error loading pie chart:', err) }); } }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
