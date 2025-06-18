@@ -1,3 +1,139 @@
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgApexchartsModule, ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle, ApexNonAxisChartSeries } from 'ng-apexcharts';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-chart-viewer',
+  standalone: true,
+  imports: [CommonModule, NgApexchartsModule],
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+
+  chartOptions: {
+    series?: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart?: ApexChart;
+    xaxis?: ApexXAxis;
+    title?: ApexTitleSubtitle;
+    labels?: string[];
+  } = {};
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      console.log('📊 Dashboard input changed:', this.dashboard);
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    if (!this.dashboard) return;
+
+    const { model, groupBy, aggregation, aggregationField, chartType, name } = this.dashboard;
+
+    console.log('🔍 Fetching chart data for type:', chartType);
+
+    if (chartType === 'BarChart') {
+      this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField).subscribe({
+        next: (data) => {
+          console.log('✅ Bar chart data received:', data);
+          this.chartOptions = {
+            series: [{ name: 'Value', data: data.values }],
+            chart: { type: 'bar', height: 350 },
+            xaxis: { categories: data.categories },
+            title: { text: name || 'Bar Chart' }
+          };
+        },
+        error: (err) => console.error('❌ Error fetching bar chart data:', err)
+      });
+    } else if (chartType === 'PieChart') {
+      this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField).subscribe({
+        next: (data) => {
+          console.log('✅ Pie chart data received:', data);
+          this.chartOptions = {
+            series: data.values,
+            chart: { type: 'pie', height: 350 },
+            labels: data.categories,
+            title: { text: name || 'Pie Chart' }
+          };
+        },
+        error: (err) => console.error('❌ Error fetching pie chart data:', err)
+      });
+    } else {
+      console.warn('⚠️ Unknown chart type:', chartType);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div *ngIf="selectedDashboardForView" class="popup-backdrop">
+  <div class="popup-chart">
+    <button class="close-btn" (click)="selectedDashboardForView = null">
+      <mat-icon>close</mat-icon>
+    </button>
+
+    <!-- Debug block -->
+    <div style="color: blue; font-size: 16px; margin-bottom: 1rem;">
+      🧪 Dashboard: {{ selectedDashboardForView?.name }}
+    </div>
+
+    <!-- Chart viewer -->
+    <app-chart-viewer [dashboard]="selectedDashboardForView"></app-chart-viewer>
+  </div>
+</div>
+
+
+
+ngOnChanges(changes: SimpleChanges): void {
+  console.log('📥 ngOnChanges:', changes);
+
+  if (changes['dashboard']) {
+    console.log('📊 New dashboard input:', this.dashboard);
+    this.loadChartData();
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <ng-container *ngIf="dashboard; else noDashboard">
   <apx-chart
     *ngIf="chartOptions.series && chartOptions.chart"
