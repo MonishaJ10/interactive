@@ -1,3 +1,131 @@
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ApexChart, ApexNonAxisChartSeries, ApexResponsive, ApexTitleSubtitle, ApexAxisChartSeries, ApexXAxis, ApexDataLabels, ApexPlotOptions } from 'ng-apexcharts';
+import { Dashboardd } from '../dashboard.model';
+import { DashboardService } from '../dashboard.service';
+
+export type ChartOptions = {
+  series: ApexAxisChartSeries | ApexNonAxisChartSeries;
+  chart: ApexChart;
+  xaxis?: ApexXAxis;
+  dataLabels?: ApexDataLabels;
+  plotOptions?: ApexPlotOptions;
+  labels?: string[];
+  title?: ApexTitleSubtitle;
+  responsive?: ApexResponsive[];
+};
+
+@Component({
+  selector: 'app-chart-viewer',
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard?: Dashboardd;
+  chartOptions: Partial<ChartOptions> = {};
+  isBarChart = false;
+  isPieChart = false;
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (this.dashboard) {
+      const chartType = this.dashboard.chartType;
+
+      // Normalize chartType for consistency
+      const normalizedChartType = chartType === 'BarChart' ? 'bar' :
+                                   chartType === 'PieChart' ? 'pie' : '';
+
+      if (normalizedChartType) {
+        this.loadChartData(normalizedChartType);
+      } else {
+        console.warn('Unknown chart type:', chartType);
+      }
+    }
+  }
+
+  loadChartData(type: string): void {
+    this.isBarChart = type === 'bar';
+    this.isPieChart = type === 'pie';
+
+    if (type === 'bar') {
+      this.dashboardService.getBarChartData(this.dashboard!).subscribe(data => {
+        this.renderBarChart(data);
+      });
+    } else if (type === 'pie') {
+      this.dashboardService.getPieChartData(this.dashboard!).subscribe(data => {
+        this.renderPieChart(data);
+      });
+    }
+  }
+
+  renderBarChart(data: any[]): void {
+    const categories = data.map(item => item.label);
+    const seriesData = data.map(item => item.value);
+
+    this.chartOptions = {
+      series: [
+        {
+          name: this.dashboard?.title || 'Data',
+          data: seriesData
+        }
+      ],
+      chart: {
+        type: 'bar',
+        height: 350
+      },
+      xaxis: {
+        categories
+      },
+      dataLabels: {
+        enabled: true
+      },
+      title: {
+        text: this.dashboard?.title || 'Bar Chart'
+      }
+    };
+  }
+
+  renderPieChart(data: any[]): void {
+    const labels = data.map(item => item.label);
+    const series = data.map(item => item.value);
+
+    this.chartOptions = {
+      series,
+      chart: {
+        type: 'pie',
+        height: 350
+      },
+      labels,
+      responsive: [
+        {
+          breakpoint: 480,
+          options: {
+            chart: {
+              width: 320
+            },
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      ],
+      title: {
+        text: this.dashboard?.title || 'Pie Chart'
+      }
+    };
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
 submitDashboard(): void {
   const uid = sessionStorage.getItem('uid') || 'unknown';
 
