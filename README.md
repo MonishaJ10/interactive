@@ -1,3 +1,63 @@
+public Map<String, Object> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
+    String query = String.format(
+        "SELECT %s AS label, %s(%s) AS value FROM %s GROUP BY %s",
+        groupBy, aggregation, aggregationField, model, groupBy
+    );
+
+    List<Map<String, Object>> rows = jdbcTemplate.queryForList(query);
+
+    List<String> categories = new ArrayList<>();
+    List<Number> values = new ArrayList<>();
+
+    for (Map<String, Object> row : rows) {
+        categories.add(String.valueOf(row.get("label")));
+        values.add((Number) row.get("value"));
+    }
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("categories", categories);
+    result.put("values", values);
+    return result;
+}
+
+
+@GetMapping("/bar-chart-data")
+public ResponseEntity<Map<String, Object>> getBarChartData(
+    @RequestParam String model,
+    @RequestParam String groupBy,
+    @RequestParam String aggregation,
+    @RequestParam String aggregationField
+) {
+    Map<String, Object> result = chartDataService.getChartData(model, groupBy, aggregation, aggregationField);
+    return ResponseEntity.ok(result);
+}
+
+@GetMapping("/pie-chart-data")
+public ResponseEntity<Map<String, Object>> getPieChartData(
+    @RequestParam String model,
+    @RequestParam String groupBy,
+    @RequestParam String aggregation,
+    @RequestParam String aggregationField
+) {
+    Map<String, Object> result = chartDataService.getChartData(model, groupBy, aggregation, aggregationField);
+    return ResponseEntity.ok(result);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { DashboardService } from '../dashboard.service';
 import { Dashboardd } from '../dashboard.model';
