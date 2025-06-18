@@ -1,3 +1,24 @@
+<ng-container *ngIf="dashboard; else noDashboard">
+  <apx-chart
+    *ngIf="chartOptions.series && chartOptions.chart"
+    [series]="chartOptions.series"
+    [chart]="chartOptions.chart"
+    [xaxis]="chartOptions.xaxis"
+    [labels]="chartOptions.labels"
+    [title]="chartOptions.title">
+  </apx-chart>
+</ng-container>
+
+<ng-template #noDashboard>
+  <p style="color: red">⚠️ No dashboard input received</p>
+</ng-template>
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { DashboardService } from '../dashboard.service';
 import { Dashboardd } from '../dashboard.model';
