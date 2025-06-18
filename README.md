@@ -1,3 +1,85 @@
+submitDashboard(): void {
+  const uid = sessionStorage.getItem('uid') || 'unknown';
+
+  // 🔁 Map lowercase chart type to API-compatible value
+  const chartTypeForBackend = this.selectedChart === 'bar' ? 'BarChart' :
+                              this.selectedChart === 'pie' ? 'PieChart' : 'BarChart';
+
+  const dashboardPayload: Dashboardd = {
+    name: this.formData.name,
+    description: this.formData.description,
+    isPublic: this.formData.isPublic,
+    chartType: chartTypeForBackend, // ✅ mapped value
+    model: this.model,
+    groupBy: this.groupBy,
+    aggregation: this.aggregation,
+    aggregationField: this.aggregationField,
+    createdBy: this.editData?.createdBy ?? uid,
+    createdDate: this.editData?.createdDate ?? new Date().toISOString(),
+    modifiedBy: this.isEditMode ? uid : undefined,
+    modifiedDate: new Date().toISOString(),
+    type: 'blank',
+  };
+
+  if (this.isEditMode && this.editData?.id) {
+    this.dashboardService.updateDashboard(this.editData.id, dashboardPayload).subscribe({
+      next: () => {
+        console.log('Dashboard updated');
+        this.dashboardUpdated.emit();
+        this.dashboardClose.emit();
+      },
+      error: (err) => console.error('Update failed', err),
+    });
+  } else {
+    this.dashboardService.addDashboard(dashboardPayload).subscribe({
+      next: () => {
+        console.log('Dashboard created');
+        this.dashboardCreated.emit();
+        this.dashboardClose.emit();
+      },
+      error: (err) => console.error('Create failed', err),
+    });
+  }
+}
+
+
+
+if (this.editData) {
+  this.isEditMode = true;
+
+  this.formData = {
+    name: this.editData.name ?? '',
+    description: this.editData.description ?? '',
+    isPublic: this.editData.isPublic ?? false,
+  };
+
+  // 🔁 Convert chart type from backend format to UI format
+  this.selectedChart = this.editData.chartType === 'BarChart' ? 'bar' :
+                       this.editData.chartType === 'PieChart' ? 'pie' : 'bar';
+
+  this.model = this.editData.model ?? '';
+  this.groupBy = this.editData.groupBy ?? '';
+  this.aggregation = this.editData.aggregation ?? '';
+  this.aggregationField = this.editData.aggregationField ?? '';
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public Map<String, Object> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
     String query = String.format(
         "SELECT %s AS label, %s(%s) AS value FROM %s GROUP BY %s",
