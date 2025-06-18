@@ -1,3 +1,27 @@
+<div *ngIf="isBarChart || isPieChart">
+  <apx-chart
+    *ngIf="chartOptions.series"
+    [series]="chartOptions.series"
+    [chart]="chartOptions.chart"
+    [xaxis]="chartOptions.xaxis"
+    [labels]="chartOptions.labels"
+    [dataLabels]="chartOptions.dataLabels"
+    [plotOptions]="chartOptions.plotOptions"
+    [responsive]="chartOptions.responsive"
+    [title]="chartOptions.title"
+  ></apx-chart>
+</div>
+
+
+
+
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ApexChart, ApexNonAxisChartSeries, ApexResponsive, ApexTitleSubtitle, ApexAxisChartSeries, ApexXAxis, ApexDataLabels, ApexPlotOptions } from 'ng-apexcharts';
 import { Dashboardd } from '../dashboard.model';
