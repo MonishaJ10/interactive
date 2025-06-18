@@ -74,7 +74,16 @@ export class ChartViewerComponent implements OnChanges {
 }
 
 
-
+{
+  headerName: 'Name',
+  field: 'name',
+  cellRenderer: (params: any) => {
+    return `<span class="dashboard-link">${params.value}</span>`;
+  },
+  onCellClicked: (params: any) => {
+    this.onDashboardNameClick(params.data);
+  }
+}
 
 
 
