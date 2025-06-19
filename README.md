@@ -1,3 +1,172 @@
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  ApexAxisChartSeries,
+  ApexChart,
+  ApexNonAxisChartSeries,
+  ApexTitleSubtitle,
+  ApexXAxis
+} from 'ng-apexcharts';
+import { NgApexchartsModule } from 'ng-apexcharts';
+import { Dashboardd } from '../dashboard.model';
+import { DashboardService } from '../dashboard.service';
+
+@Component({
+  selector: 'app-chart-viewer',
+  standalone: true,
+  imports: [CommonModule, NgApexchartsModule],
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+
+  chartOptions: {
+    series: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart: ApexChart;
+    xaxis?: ApexXAxis;
+    title?: ApexTitleSubtitle;
+    labels?: string[];
+  } = {
+    series: [],
+    chart: {
+      type: 'bar',
+      height: 350
+    }
+  };
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      console.log('📦 Dashboard input changed:', this.dashboard);
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    if (!this.dashboard) return;
+
+    const {
+      model,
+      groupBy,
+      aggregation,
+      aggregationField,
+      chartType = 'bar',
+      name
+    } = this.dashboard;
+
+    console.log('📊 Fetching chart data for type:', chartType);
+    console.log('Model:', model);
+    console.log('Group By:', groupBy);
+    console.log('Aggregation:', aggregation);
+    console.log('Aggregation Field:', aggregationField);
+
+    if (chartType === 'bar') {
+      this.dashboardService
+        .getBarChartData(model, groupBy, aggregation, aggregationField)
+        .subscribe({
+          next: (data: { LABEL: string; VALUE: number }[]) => {
+            const chartData = data.map((item) => ({
+              label: item.LABEL,
+              value: item.VALUE
+            }));
+
+            console.log('✅ Bar chart data received:', chartData);
+
+            this.chartOptions = {
+              series: [
+                {
+                  name: 'Value',
+                  data: chartData.map((d) => d.value)
+                }
+              ],
+              chart: {
+                type: 'bar',
+                height: 350
+              },
+              xaxis: {
+                categories: chartData.map((d) => d.label)
+              },
+              title: {
+                text: name || 'Bar Chart'
+              },
+              labels: []
+            };
+          },
+          error: (err) =>
+            console.error('❌ Error fetching bar chart data:', err)
+        });
+    } else if (chartType === 'pie') {
+      this.dashboardService
+        .getPieChartData(model, groupBy, aggregation, aggregationField)
+        .subscribe({
+          next: (data: { LABEL: string; VALUE: number }[]) => {
+            const chartData = data.map((item) => ({
+              label: item.LABEL,
+              value: item.VALUE
+            }));
+
+            console.log('✅ Pie chart data received:', chartData);
+
+            this.chartOptions = {
+              series: chartData.map((d) => d.value),
+              chart: {
+                type: 'pie',
+                height: 350
+              },
+              labels: chartData.map((d) => d.label),
+              title: {
+                text: name || 'Pie Chart'
+              }
+            };
+          },
+          error: (err) =>
+            console.error('❌ Error fetching pie chart data:', err)
+        });
+    } else {
+      console.warn('⚠️ Unknown chart type:', chartType);
+    }
+  }
+}
+
+
+
+<div *ngIf="chartOptions">
+  <apx-chart
+    [series]="chartOptions.series"
+    [chart]="chartOptions.chart"
+    [title]="chartOptions.title"
+    [xaxis]="chartOptions.xaxis ? chartOptions.xaxis : undefined"
+    [labels]="chartOptions.labels ? chartOptions.labels : undefined">
+  </apx-chart>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div *ngIf="chartOptions">
   <apx-chart
     [series]="chartOptions.series"
