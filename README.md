@@ -16,6 +16,82 @@ public class ChartDataService {
     }
 
     public List<Map<String, Object>> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
+        // Replace underscores in model with spaces to match DB
+        String formattedModel = model.replace("_", " ");
+
+        // Debug logs
+        System.out.println("🔍 Model: " + formattedModel);
+        System.out.println("📊 Group By: " + groupBy);
+        System.out.println("🧮 Aggregation: " + aggregation);
+        System.out.println("📌 Aggregation Field: " + aggregationField);
+
+        String query;
+
+        switch (aggregation.toLowerCase()) {
+            case "count" -> {
+                query = String.format(
+                    "SELECT %s AS label, COUNT(*) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+                    groupBy, groupBy
+                );
+            }
+            case "sum" -> {
+                query = String.format(
+                    "SELECT %s AS label, SUM(%s) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+                    groupBy, aggregationField, groupBy
+                );
+            }
+            case "avg", "average" -> {
+                query = String.format(
+                    "SELECT %s AS label, AVG(%s) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+                    groupBy, aggregationField, groupBy
+                );
+            }
+            default -> throw new IllegalArgumentException("❌ Invalid aggregation type: " + aggregation);
+        }
+
+        // Log the SQL being run
+        System.out.println("📝 Executing SQL: " + query);
+
+        // Execute and return result
+        return jdbcTemplate.queryForList(query, formattedModel);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.recon_connect.service;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class ChartDataService {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public ChartDataService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<Map<String, Object>> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
         String sql;
 
         switch (aggregation.toLowerCase()) {
