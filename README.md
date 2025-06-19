@@ -1,3 +1,145 @@
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgApexchartsModule } from 'ng-apexcharts';
+import {
+  ApexChart,
+  ApexNonAxisChartSeries,
+  ApexTitleSubtitle,
+  ApexAxisChartSeries,
+  ApexXAxis
+} from 'ng-apexcharts';
+import { Dashboardd } from '../dashboard.model';
+import { DashboardService } from '../dashboard.service';
+
+@Component({
+  selector: 'app-chart-viewer',
+  standalone: true,
+  imports: [CommonModule, NgApexchartsModule],
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+
+  chartOptions: {
+    series: ApexAxisChartSeries | ApexNonAxisChartSeries;
+    chart: ApexChart;
+    xaxis?: ApexXAxis;
+    title: ApexTitleSubtitle;
+    labels?: string[];
+  } = {
+    series: [],
+    chart: {
+      type: 'bar',
+      height: 350
+    },
+    title: {
+      text: ''
+    },
+    xaxis: {
+      categories: []
+    },
+    labels: []
+  };
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      console.log('Dashboard input changed:', this.dashboard);
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    if (!this.dashboard) return;
+
+    const {
+      model,
+      groupBy,
+      aggregation,
+      aggregationField,
+      name,
+      chartType = 'bar'
+    } = this.dashboard;
+
+    console.log('📊 Fetching chart data for:', { model, groupBy, aggregation, aggregationField, chartType });
+
+    if (chartType === 'bar') {
+      this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField).subscribe({
+        next: (data: { LABEL: string; VALUE: number }[]) => {
+          console.log('✅ Bar chart data received:', data);
+          const chartData = data.map((d) => ({ label: d.LABEL, value: d.VALUE }));
+
+          this.chartOptions = {
+            series: [{
+              name: 'Value',
+              data: chartData.map((d) => d.value)
+            }],
+            chart: {
+              type: 'bar',
+              height: 350
+            },
+            xaxis: {
+              categories: chartData.map((d) => d.label)
+            },
+            title: {
+              text: name || 'Bar Chart'
+            },
+            labels: []
+          };
+        },
+        error: (err) => console.error('❌ Error fetching bar chart data:', err)
+      });
+
+    } else if (chartType === 'pie') {
+      this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField).subscribe({
+        next: (data: { LABEL: string; VALUE: number }[]) => {
+          console.log('✅ Pie chart data received:', data);
+          const chartData = data.map((d) => ({ label: d.LABEL, value: d.VALUE }));
+
+          this.chartOptions = {
+            series: chartData.map((d) => d.value),
+            chart: {
+              type: 'pie',
+              height: 350
+            },
+            labels: chartData.map((d) => d.label),
+            title: {
+              text: name || 'Pie Chart'
+            }
+          };
+        },
+        error: (err) => console.error('❌ Error fetching pie chart data:', err)
+      });
+
+    } else {
+      console.warn('⚠️ Unknown chart type:', chartType);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import {
   Component,
   Input,
