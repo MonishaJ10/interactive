@@ -1,3 +1,19 @@
+<div *ngIf="chartOptions">
+  <apx-chart
+    [series]="chartOptions.series"
+    [chart]="chartOptions.chart"
+    [xaxis]="chartOptions.xaxis"
+    [labels]="chartOptions.labels"
+    [title]="chartOptions.title">
+  </apx-chart>
+</div>
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgApexchartsModule } from 'ng-apexcharts';
