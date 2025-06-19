@@ -1,3 +1,27 @@
+getBarChartData(model: string, groupBy: string, aggregation: string, aggregationField: string): Observable<any> {
+  const url = `${this.apiUrl}/bar-chart-data?model=${model}&groupBy=${groupBy}&aggregation=${aggregation}&aggregationField=${aggregationField}`;
+  console.log('📊 GET BarChart URL:', url);
+  return this.http.get<any[]>(url);
+}
+
+getPieChartData(model: string, groupBy: string, aggregation: string, aggregationField: string): Observable<any> {
+  const url = `${this.apiUrl}/pie-chart-data?model=${model}&groupBy=${groupBy}&aggregation=${aggregation}&aggregationField=${aggregationField}`;
+  console.log('🥧 GET PieChart URL:', url);
+  return this.http.get<any[]>(url);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 loadChartData(): void {
   if (!this.dashboard) return;
 
