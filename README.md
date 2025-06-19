@@ -1,3 +1,99 @@
+// chart-viewer.component.ts import { Component, Input, OnChanges } from '@angular/core'; import { ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle } from 'ng-apexcharts'; import { Dashboardd } from '../dashboard.model'; import { DashboardService } from '../dashboard.service';
+
+@Component({ selector: 'app-chart-viewer', templateUrl: './chart-viewer.component.html', styleUrls: ['./chart-viewer.component.css'] }) export class ChartViewerComponent implements OnChanges { @Input() dashboard: Dashboardd | null = null;
+
+chartOptions: { series: ApexAxisChartSeries; chart: ApexChart; xaxis?: ApexXAxis; labels?: string[]; title: ApexTitleSubtitle; } = { series: [], chart: { type: 'bar', height: 350 }, title: { text: 'Chart' } };
+
+constructor(private dashboardService: DashboardService) {}
+
+ngOnChanges(): void { if (!this.dashboard) return;
+
+const { model, groupBy, aggregation, aggregationField, chartType, name } = this.dashboard;
+console.log('📊 Dashboard input changed:', this.dashboard);
+console.log('🔄 Fetching chart data for type:', chartType);
+
+if (chartType === 'bar') {
+  this.dashboardService
+    .getBarChartData(model, groupBy, aggregation, aggregationField)
+    .subscribe({
+      next: (data) => {
+        const barData = data.map((item: any) => ({
+          label: item.LABEL,
+          value: item.VALUE
+        }));
+
+        console.log('✅ Bar chart data received:', barData);
+
+        this.chartOptions = {
+          series: [
+            {
+              name: 'Value',
+              data: barData.map(d => d.value)
+            }
+          ],
+          chart: {
+            type: 'bar',
+            height: 350
+          },
+          xaxis: {
+            categories: barData.map(d => d.label)
+          },
+          title: {
+            text: name || 'Bar Chart'
+          }
+        };
+      },
+      error: (err) => console.error('❌ Error fetching bar chart data:', err)
+    });
+} else if (chartType === 'pie') {
+  this.dashboardService
+    .getPieChartData(model, groupBy, aggregation, aggregationField)
+    .subscribe({
+      next: (data) => {
+        const pieData = data.map((item: any) => ({
+          label: item.LABEL,
+          value: item.VALUE
+        }));
+
+        console.log('🥧 Pie chart data received:', pieData);
+
+        this.chartOptions = {
+          series: pieData.map(d => d.value),
+          chart: {
+            type: 'pie',
+            height: 350
+          },
+          labels: pieData.map(d => d.label),
+          title: {
+            text: name || 'Pie Chart'
+          }
+        };
+      },
+      error: (err) => console.error('❌ Error fetching pie chart data:', err)
+    });
+} else {
+  console.warn('⚠️ Unknown chart type:', chartType);
+}
+
+} }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ApexChart, ApexAxisChartSeries, ApexNonAxisChartSeries, ApexXAxis, ApexTitleSubtitle } from 'ng-apexcharts';
 import { Dashboardd } from '../dashboard.model';
