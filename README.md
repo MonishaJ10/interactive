@@ -1,4 +1,90 @@
-// ✅ FIXED ChartViewerComponent import { Component, Input, OnChanges } from '@angular/core'; import { CommonModule } from '@angular/common'; import { ApexChart, ApexAxisChartSeries, ApexNonAxisChartSeries, ApexTitleSubtitle, ApexXAxis, ApexOptions } from 'ng-apexcharts'; import { NgApexchartsModule } from 'ng-apexcharts'; import { Dashboardd } from '../dashboard.model'; import { DashboardService } from '../dashboard.service';
+// ChartDataController.java package com.example.recon_connect.controller;
+
+import com.example.recon_connect.service.ChartDataService; import org.springframework.beans.factory.annotation.Autowired; import org.springframework.http.ResponseEntity; import org.springframework.web.bind.annotation.*;
+
+import java.util.List; import java.util.Map;
+
+@CrossOrigin(origins = "http://localhost:4200") @RestController @RequestMapping("/api") public class ChartDataController {
+
+@Autowired
+private ChartDataService chartDataService;
+
+@GetMapping("/bar-chart-data")
+public ResponseEntity<List<Map<String, Object>>> getBarChartData(
+        @RequestParam String model,
+        @RequestParam String groupBy,
+        @RequestParam String aggregation,
+        @RequestParam String aggregationField
+) {
+    List<Map<String, Object>> result = chartDataService.getChartData(model, groupBy, aggregation, aggregationField);
+    return ResponseEntity.ok(result);
+}
+
+@GetMapping("/pie-chart-data")
+public ResponseEntity<List<Map<String, Object>>> getPieChartData(
+        @RequestParam String model,
+        @RequestParam String groupBy,
+        @RequestParam String aggregation,
+        @RequestParam String aggregationField
+) {
+    List<Map<String, Object>> result = chartDataService.getChartData(model, groupBy, aggregation, aggregationField);
+    return ResponseEntity.ok(result);
+}
+
+}
+
+// ChartDataService.java package com.example.recon_connect.service;
+
+import org.springframework.beans.factory.annotation.Autowired; import org.springframework.jdbc.core.JdbcTemplate; import org.springframework.stereotype.Service;
+
+import java.util.List; import java.util.Map;
+
+@Service public class ChartDataService {
+
+@Autowired
+private JdbcTemplate jdbcTemplate;
+
+public List<Map<String, Object>> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
+    String aggExpression = aggregation.equalsIgnoreCase("count") ?
+            "COUNT(*)" :
+            String.format("%s(%s)", aggregation.toUpperCase(), aggregationField);
+
+    String query = String.format(
+            "SELECT %s AS label, %s AS value FROM holdings_data WHERE MODEL = ? GROUP BY %s",
+            groupBy, aggExpression, groupBy
+    );
+
+    return jdbcTemplate.queryForList(query, model);
+}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/ ✅ FIXED ChartViewerComponent import { Component, Input, OnChanges } from '@angular/core'; import { CommonModule } from '@angular/common'; import { ApexChart, ApexAxisChartSeries, ApexNonAxisChartSeries, ApexTitleSubtitle, ApexXAxis, ApexOptions } from 'ng-apexcharts'; import { NgApexchartsModule } from 'ng-apexcharts'; import { Dashboardd } from '../dashboard.model'; import { DashboardService } from '../dashboard.service';
 
 @Component({ selector: 'app-chart-viewer', standalone: true, imports: [CommonModule, NgApexchartsModule], templateUrl: './chart-viewer.component.html', styleUrls: ['./chart-viewer.component.css'] }) export class ChartViewerComponent implements OnChanges { @Input() dashboard: Dashboardd | null = null;
 
@@ -14,7 +100,56 @@ loadPieChart(): void { const d = this.dashboard!; this.dashboardService .getPieC
 
 
 
+package com.example.recon_connect.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class ChartDataService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public List<Map<String, Object>> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
+        String valueExpr;
+
+        switch (aggregation.toLowerCase()) {
+            case "sum":
+                valueExpr = String.format("SUM(%s)", aggregationField);
+                break;
+            case "average":
+            case "avg":
+                valueExpr = String.format("AVG(%s)", aggregationField);
+                break;
+            case "count":
+            default:
+                valueExpr = "COUNT(*)";
+                break;
+        }
+
+        // Defensive SQL construction: only allow alphanumeric/underscore in identifiers
+        if (!isSafeIdentifier(model) || !isSafeIdentifier(groupBy) || !isSafeIdentifier(aggregationField)) {
+            throw new IllegalArgumentException("Invalid input: Only alphanumeric and underscore allowed in identifiers.");
+        }
+
+        String query = String.format(
+            "SELECT %s AS label, %s AS value FROM %s WHERE model = ? GROUP BY %s",
+            groupBy, valueExpr, model, groupBy
+        );
+
+        return jdbcTemplate.queryForList(query, model);
+    }
+
+    // Basic safety check for SQL injection
+    private boolean isSafeIdentifier(String input) {
+        return input != null && input.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+    }
+}
 
 
 
