@@ -1,3 +1,44 @@
+public List<Map<String, Object>> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
+    // Replace underscores with spaces to match actual DB values
+    String formattedModel = model.replace("_", " ");
+
+    String query;
+
+    if ("count".equalsIgnoreCase(aggregation)) {
+        query = String.format(
+            "SELECT %s AS label, COUNT(*) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+            groupBy, groupBy
+        );
+    } else if ("sum".equalsIgnoreCase(aggregation)) {
+        query = String.format(
+            "SELECT %s AS label, SUM(%s) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+            groupBy, aggregationField, groupBy
+        );
+    } else if ("avg".equalsIgnoreCase(aggregation)) {
+        query = String.format(
+            "SELECT %s AS label, AVG(%s) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+            groupBy, aggregationField, groupBy
+        );
+    } else {
+        throw new IllegalArgumentException("Invalid aggregation type: " + aggregation);
+    }
+
+    return jdbcTemplate.queryForList(query, formattedModel);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 String query = String.format(
   "SELECT %s AS label, COUNT(*) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
   groupBy, groupBy
