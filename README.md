@@ -1,3 +1,13 @@
+UPDATE interactive_dashboard
+SET model = 'German_Holdings'
+WHERE model = 'Germany_Holdings';
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core'; import { CommonModule } from '@angular/common'; import { NgApexchartsModule } from 'ng-apexcharts'; import { ApexChart, ApexAxisChartSeries, ApexNonAxisChartSeries, ApexXAxis, ApexTitleSubtitle } from 'ng-apexcharts'; import { Dashboardd } from '../dashboard.model'; import { DashboardService } from '../dashboard.service';
 
 @Component({ selector: 'app-chart-viewer', standalone: true, imports: [CommonModule, NgApexchartsModule], templateUrl: './chart-viewer.component.html', styleUrls: ['./chart-viewer.component.css'] }) export class ChartViewerComponent implements OnChanges { @Input() dashboard: Dashboardd | null = null;
