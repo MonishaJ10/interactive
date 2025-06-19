@@ -1,3 +1,141 @@
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ApexChart, ApexAxisChartSeries, ApexNonAxisChartSeries, ApexXAxis, ApexTitleSubtitle } from 'ng-apexcharts';
+import { Dashboardd } from '../dashboard.model';
+import { DashboardService } from '../dashboard.service';
+
+@Component({
+  selector: 'app-chart-viewer',
+  templateUrl: './chart-viewer.component.html',
+  styleUrls: ['./chart-viewer.component.css']
+})
+export class ChartViewerComponent implements OnChanges {
+  @Input() dashboard: Dashboardd | null = null;
+  chartOptions: any = {};
+  chartType: 'bar' | 'pie' = 'bar';
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dashboard'] && this.dashboard) {
+      console.log('📊 Dashboard input changed:', this.dashboard);
+      this.loadChartData();
+    }
+  }
+
+  loadChartData(): void {
+    if (!this.dashboard) return;
+
+    const {
+      model,
+      groupBy,
+      aggregation,
+      aggregationField,
+      chartType = 'BarChart',
+      name
+    } = this.dashboard;
+
+    const resolvedChartType = chartType.toLowerCase().includes('pie') ? 'pie' : 'bar';
+    this.chartType = resolvedChartType as 'bar' | 'pie';
+
+    console.log('🔍 Fetching chart data for type:', resolvedChartType);
+    console.log('📦 Model:', model);
+    console.log('📊 Group By:', groupBy);
+    console.log('📈 Aggregation:', aggregation);
+    console.log('🏷️ Aggregation Field:', aggregationField);
+
+    this.dashboardService.getChartData(model, groupBy, aggregation, aggregationField)
+      .subscribe({
+        next: (data: any[]) => {
+          const chartData = data.map(item => ({
+            label: item.LABEL,
+            value: item.VALUE
+          }));
+
+          console.log(`✅ ${resolvedChartType} chart data received:`, chartData);
+
+          if (resolvedChartType === 'bar') {
+            this.chartOptions = {
+              series: [{
+                name: 'Value',
+                data: chartData.map(d => d.value)
+              }],
+              chart: {
+                type: 'bar',
+                height: 350
+              },
+              xaxis: {
+                categories: chartData.map(d => d.label)
+              },
+              title: {
+                text: name ?? 'Bar Chart'
+              }
+            };
+          } else {
+            this.chartOptions = {
+              series: chartData.map(d => d.value),
+              chart: {
+                type: 'pie',
+                height: 350
+              },
+              labels: chartData.map(d => d.label),
+              title: {
+                text: name ?? 'Pie Chart'
+              }
+            };
+          }
+        },
+        error: (err) => {
+          console.error('❌ Error fetching chart data:', err);
+        }
+      });
+  }
+
+<div *ngIf="chartOptions && chartOptions.chart">
+  <apx-chart
+    [series]="chartOptions.series"
+    [chart]="chartOptions.chart"
+    [xaxis]="chartOptions.xaxis"
+    [labels]="chartOptions.labels"
+    [title]="chartOptions.title">
+  </apx-chart>
+</div>
+
+<div *ngIf="!chartOptions || !chartOptions.series?.length">
+  <p>No chart data available.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package com.example.recon_connect.service;
 
 import org.springframework.jdbc.core.JdbcTemplate;
