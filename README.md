@@ -1,3 +1,19 @@
+String query = String.format(
+  "SELECT %s AS label, COUNT(*) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+  groupBy, groupBy
+);
+return jdbcTemplate.queryForList(query, model); // model here is used as a filter value
+
+
+
+
+
+
+
+
+
+
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Dashboardd } from '../dashboard.model';
 import { DashboardService } from '../dashboard.service';
