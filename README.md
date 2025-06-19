@@ -1,3 +1,83 @@
+// ChartDataService.java package com.example.recon_connect.service;
+
+import org.springframework.beans.factory.annotation.Autowired; import org.springframework.jdbc.core.JdbcTemplate; import org.springframework.stereotype.Service;
+
+import java.util.List; import java.util.Map;
+
+@Service public class ChartDataService {
+
+@Autowired
+private JdbcTemplate jdbcTemplate;
+
+public List<Map<String, Object>> getChartData(
+        String tableName,
+        String modelName,
+        String groupBy,
+        String aggregation,
+        String aggregationField) {
+
+    String query = String.format(
+            "SELECT %s AS label, %s(%s) AS value FROM %s WHERE model = '%s' GROUP BY %s",
+            groupBy, aggregation, aggregationField, tableName, modelName, groupBy
+    );
+
+    return jdbcTemplate.queryForList(query);
+}
+
+}
+
+package com.example.recon_connect.controller;
+
+import com.example.recon_connect.service.ChartDataService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@CrossOrigin(origins = "http://localhost:4200")
+@RestController
+@RequestMapping("/api")
+public class ChartDataController {
+
+    @Autowired
+    private ChartDataService chartDataService;
+
+    // ✅ Bar chart endpoint
+    @GetMapping("/bar-chart-data")
+    public ResponseEntity<List<Map<String, Object>>> getBarChartData(
+            @RequestParam String model,
+            @RequestParam String groupBy,
+            @RequestParam String aggregation,
+            @RequestParam String aggregationField
+    ) {
+        List<Map<String, Object>> result = chartDataService.getChartData(model, groupBy, aggregation, aggregationField);
+        return ResponseEntity.ok(result);
+    }
+
+    // ✅ Pie chart endpoint (calls same service)
+    @GetMapping("/pie-chart-data")
+    public ResponseEntity<List<Map<String, Object>>> getPieChartData(
+            @RequestParam String model,
+            @RequestParam String groupBy,
+            @RequestParam String aggregation,
+            @RequestParam String aggregationField
+    ) {
+        List<Map<String, Object>> result = chartDataService.getChartData(model, groupBy, aggregation, aggregationField);
+        return ResponseEntity.ok(result);
+    }
+}
+
+
+
+
+
+
+
+
+
+
 http://localhost:8080/api/bar-chart-data?model=holdings_data&groupBy=currency&aggregation=count&aggregationField=currency
 
 
