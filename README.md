@@ -4,7 +4,7 @@ String query = String.format(
 );
 return jdbcTemplate.queryForList(query, model); // model here is used as a filter value
 
-
+GET http://localhost:8083/api/bar-chart-data?model=holdings_data&groupBy=currency&aggregation=count&aggregationField=currency
 
 
 
