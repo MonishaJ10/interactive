@@ -1,3 +1,69 @@
+package com.example.recon_connect.service;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class ChartDataService {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public ChartDataService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<Map<String, Object>> getChartData(String model, String groupBy, String aggregation, String aggregationField) {
+        String sql;
+
+        switch (aggregation.toLowerCase()) {
+            case "count" -> {
+                sql = String.format(
+                    "SELECT %s AS label, COUNT(*) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+                    groupBy, groupBy
+                );
+                return jdbcTemplate.queryForList(sql, model);
+            }
+            case "sum" -> {
+                sql = String.format(
+                    "SELECT %s AS label, SUM(%s) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+                    groupBy, aggregationField, groupBy
+                );
+                return jdbcTemplate.queryForList(sql, model);
+            }
+            case "avg", "average" -> {
+                sql = String.format(
+                    "SELECT %s AS label, AVG(%s) AS value FROM holdings_data WHERE model = ? GROUP BY %s",
+                    groupBy, aggregationField, groupBy
+                );
+                return jdbcTemplate.queryForList(sql, model);
+            }
+            default -> throw new IllegalArgumentException("Unsupported aggregation type: " + aggregation);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 getBarChartData(model: string, groupBy: string, aggregation: string, aggregationField: string): Observable<any> {
   const url = `${this.apiUrl}/bar-chart-data?model=${model}&groupBy=${groupBy}&aggregation=${aggregation}&aggregationField=${aggregationField}`;
   console.log('📊 GET BarChart URL:', url);
