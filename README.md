@@ -1,3 +1,15 @@
+http://localhost:8080/api/bar-chart-data?model=holdings_data&groupBy=currency&aggregation=count&aggregationField=currency
+
+
+
+
+
+
+
+
+
+
+
 // ChartDataController.java package com.example.recon_connect.controller;
 
 import com.example.recon_connect.service.ChartDataService; import org.springframework.beans.factory.annotation.Autowired; import org.springframework.http.ResponseEntity; import org.springframework.web.bind.annotation.*;
