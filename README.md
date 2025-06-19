@@ -1,3 +1,90 @@
+loadChartData(): void {
+  if (!this.dashboard) return;
+
+  const {
+    model,
+    groupBy,
+    aggregation,
+    aggregationField,
+    chartType = 'bar', // fallback
+    name
+  } = this.dashboard;
+
+  console.log('📊 Fetching chart data for type:', chartType);
+
+  if (chartType === 'bar') {
+    this.dashboardService.getBarChartData(model, groupBy, aggregation, aggregationField).subscribe({
+      next: (data) => {
+        const chartData = data.map((item: any) => ({
+          label: item.LABEL,
+          value: item.VALUE
+        }));
+
+        console.log('📦 Bar chart data received:', chartData);
+
+        this.chartOptions = {
+          series: [{
+            name: 'Value',
+            data: chartData.map(d => d.value)
+          }],
+          chart: {
+            type: 'bar',
+            height: 350
+          },
+          xaxis: {
+            categories: chartData.map(d => d.label)
+          },
+          title: {
+            text: name || 'Bar Chart'
+          },
+          labels: []
+        };
+      },
+      error: (err) => console.error('❌ Error fetching bar chart data:', err)
+    });
+  } else if (chartType === 'pie') {
+    this.dashboardService.getPieChartData(model, groupBy, aggregation, aggregationField).subscribe({
+      next: (data) => {
+        const chartData = data.map((item: any) => ({
+          label: item.LABEL,
+          value: item.VALUE
+        }));
+
+        console.log('📦 Pie chart data received:', chartData);
+
+        this.chartOptions = {
+          series: chartData.map(d => d.value),
+          chart: {
+            type: 'pie',
+            height: 350
+          },
+          labels: chartData.map(d => d.label),
+          title: {
+            text: name || 'Pie Chart'
+          },
+          xaxis: {
+            categories: [] // required fallback for type-safe ApexChart options
+          }
+        };
+      },
+      error: (err) => console.error('❌ Error fetching pie chart data:', err)
+    });
+  } else {
+    console.warn('⚠️ Unknown chart type:', chartType);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 package com.example.recon_connect.controller;
 
 import com.example.recon_connect.service.ChartDataService;
